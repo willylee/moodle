@@ -174,3 +174,87 @@
   margin-top: 0.5em;
 }
 
+
+
+
+/*******************************************/
+// ADDED MULTIMEDIA STYLES
+#mod-assignment-view .teacherPic {
+	display: inline;
+	margin-left: 5px;
+	margin-right: 5px;
+	width: 16px;
+	height: 16px;
+}
+
+#mod-assignment-view .teacherPic .inactivePic {
+	border-style: outset;
+	border-width: 3px;
+	border-color: #dddddd;
+}
+
+#mod-assignment-view .teacherPic .activePic {
+	border-style: inset;
+	border-width: 3px;
+	border-color: #0000ff;
+}
+
+#mod-assignment-view .teacherPics {
+	clear: left;
+	float: left;
+	list-style: none;
+	height: 3em;
+	margin: 0;
+	padding: 0;
+	position: relative;
+	left: 50%;
+	text-align: center;
+}
+
+#mod-assignment-view .teacherPics li {
+	display: block;
+	float: left;
+	margin-left: 5px;
+	margin-right: 5px;
+	position: relative;
+	right: 50%;
+	height: 34px;
+	padding: 5px 5px 7px;
+	border-top: 2px solid #bbbbbb;
+	border-right: 2px solid #bbbbbb;
+	border-left: 2px solid #bbbbbb;
+}
+
+#mod-assignment-view .teacherPics li .activePic {
+	border-bottom: 2px solid #eeeeee;
+}
+
+#mod-assignment-view .teacherPics li .inactivePic {
+	background-color: #dddddd;
+}
+
+#mod-assignment-view .feedbackBlock {
+	border: 1px solid #cccccc;
+	padding: 10px;
+	width: 90%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/*=======================*/
+/* HACK */
+/* Copying styles to no-cascading names, as behavior in loading the above styles is erratic, at best */
+#mod-assignment-view .activePic {
+	border-bottom: 2px solid #eeeeee;
+}
+#mod-assignment-view .inactivePic {
+	background-color: #dddddd;
+}
+/*=======================*/
+
+#mod-assignment-view .revletInstructions {
+	font-style: italic;
+	font-size: .8em;
+}
+
+/*******************************************/

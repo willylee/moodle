@@ -5,10 +5,6 @@
 
     $id = optional_param('id', 0, PARAM_INT);  // Course module ID
     $a  = optional_param('a', 0, PARAM_INT);   // Assignment ID
-	$feedback = optional_param('feedback', 0, PARAM_INT); // Uploading feedback flag
-														  // NOTE that this is only ever set from an audio or video type assignment
-	$stuid = optional_param('stuid', 0, PARAM_INT); // ID of student for whom we are submitting feedback
-													// NOTE that this is only ever set from an audio or video type assignment
 
     if ($id) {
         if (! $cm = get_coursemodule_from_id('assignment', $id)) {
@@ -41,10 +37,6 @@
     $assignmentclass = 'assignment_'.$assignment->assignmenttype;
     $assignmentinstance = new $assignmentclass($cm->id, $assignment, $cm, $course);
 
-	if ($feedback) {
-		$assignmentinstance->upload_feedback($stuid); // Upload feedback files
-	} else {
-		$assignmentinstance->upload();   // Upload student files
-	}
+    $assignmentinstance->upload();   // Upload files
 
 ?>

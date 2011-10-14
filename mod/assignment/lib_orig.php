@@ -870,7 +870,7 @@ class assignment_base {
         $disabled = $grading_info->items[0]->grades[$userid]->locked || $grading_info->items[0]->grades[$userid]->overridden;
 
         // MDL-9085 BOBPUFFER 2010-10-07 HACK TO ALLOW RETRIEVING OF FLOATING POINT GRADES FROM GRADEBOOK TO BE DISPLAYED AND EDITED IN ASSIGNMENT INTERFACE
-        if ($this->assignment->grade >= 0 && $grading_info->items[0]->grades[$user->id]->str_grade <> null && floatval($grading_info->items[0]->grades[$user->id]->str_grade) <> floatval($submission->grade)) {
+        if ($this->assignment-grade >= 0 && $grading_info->items[0]->grades[$user->id]->str_grade <> null && floatval($grading_info->items[0]->grades[$user->id]->str_grade) <> floatval($submission->grade)) {
             $submission->grade = s($grading_info->items[0]->grades[$user->id]->str_grade);
         } // END OF HACK BOBPUFFER
 
@@ -949,16 +949,7 @@ class assignment_base {
         ///Start of teacher info row
 
         echo '<tr>';
-		/****************************************************/
-		// MULTIMEDIA LANGUAGE LAB ADDITION
-		// @videohack@
-		// if this is a video assignment, set up the teacher pic to be for both the WYSIWYG and the recorder
-		if ($this->assignment->assignmenttype == 'video') {
-			echo '<td class="picture teacher" rowspan="2">';
-		} else {
-			echo '<td class="picture teacher">';
-		}
-		/****************************************************/
+        echo '<td class="picture teacher">';
         if ($submission->teacher) {
             $teacher = get_record('user', 'id', $submission->teacher);
         } else {
@@ -1062,54 +1053,23 @@ class assignment_base {
             echo $customfeedback;
         }
 
-		/****************************************************/
-		// MULTIMEDIA LANGUAGE LAB ADDITION
-		// @videohack@
-		// If this is a video assignment, print the user's submission NEXT TO the WYSIWYG, and put the response recorder below
-		if ($this->assignment->assignmenttype == 'video') {
-			echo '</td><td class="picture user">';
-			print_user_picture($user, $this->course->id, $user->picture);
-			echo '</td><td class="content">';
-			echo '<div class="from">';
-			echo '<div class="fullname">'.fullname($user, true).'</div>';
-			if ($submission->timemodified) {
-				echo '<div class="time">'.userdate($submission->timemodified).
-										 $this->display_lateness($submission->timemodified).'</div>';
-			}
-			echo '</div>';
-			$this->print_user_files($user->id);
-		}
-		/****************************************************/
-
         echo '</td></tr>';
 
         ///End of teacher info row, Start of student info row
         echo '<tr>';
-		/****************************************************/
-		// MULTIMEDIA LANGUAGE LAB ADDITION
-		// @videohack@
-		// If this is a video assignment, just print the teacher's recorder in the bottom row
-		if ($this->assignment->assignmenttype != 'video') {
-			echo '<td class="picture user">';
-			print_user_picture($user, $this->course->id, $user->picture);
-			echo '</td>';
-			echo '<td class="topic">';
-			echo '<div class="from">';
-			echo '<div class="fullname">'.fullname($user, true).'</div>';
-			if ($submission->timemodified) {
-				echo '<div class="time">'.userdate($submission->timemodified).
-										 $this->display_lateness($submission->timemodified).'</div>';
-			}
-			echo '</div>';
-			$this->print_user_files($user->id);
-			echo '</td>';
-		} else {
-			echo '<td class="topic" colspan="3">';
-			$this->print_recorder($user->id);
-			echo '</td>';
-		}
-		/****************************************************/
-
+        echo '<td class="picture user">';
+        print_user_picture($user, $this->course->id, $user->picture);
+        echo '</td>';
+        echo '<td class="topic">';
+        echo '<div class="from">';
+        echo '<div class="fullname">'.fullname($user, true).'</div>';
+        if ($submission->timemodified) {
+            echo '<div class="time">'.userdate($submission->timemodified).
+                                     $this->display_lateness($submission->timemodified).'</div>';
+        }
+        echo '</div>';
+        $this->print_user_files($user->id);
+        echo '</td>';
         echo '</tr>';
 
         ///End of student info row
@@ -3288,7 +3248,7 @@ function assignment_get_types() {
     $type->typestr = '--'.get_string('modulenameplural', 'assignment');
     $types[] = $type;
 
-    $standardassignments = array('upload','online','uploadsingle','offline','audio','video');
+    $standardassignments = array('upload','online','uploadsingle','offline');
     foreach ($standardassignments as $assignmenttype) {
         $type = new object();
         $type->modclass = MOD_CLASS_ACTIVITY;
