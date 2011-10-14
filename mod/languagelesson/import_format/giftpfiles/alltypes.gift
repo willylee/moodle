@@ -1,0 +1,21 @@
+::mc 1ans::Pick the letter a{
+	= a
+	~ b
+	~ c
+}
+
+::mc multians::Pick 'a' and 'b'{
+	~%50%a
+	~%50%b
+	~ c
+}
+
+::tf::T{TRUE}
+
+::sa::Type 'nazareth'{=nazareth}
+
+::ess::Write an essay {}
+
+::aud::Record an audio {AUDIO}
+
+::vid::Record a video {VIDEO}

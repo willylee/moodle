@@ -1,0 +1,78 @@
+////////////////////////////////////////////////////////////
+// GIFT+ format test file
+//
+// Includes all types of questions and structural behavior.
+// To be used for testing importing functionality in the
+// LanguageLesson module.
+////////////////////////////////////////////////////////////
+
+
+
+///// Ensemble 1 Dossier 1 /////
+
+::Dossier 1::Please select your Activite. {Activite 1 | Activite 2 | Activite 3}
+
+//MC
+::Instructions::Answer the following questions.
+
+::Q1::Please choose the fruit highest in potassium: {
+	=banana
+	~tomato
+	~apple
+}
+
+//Audio
+::Q2::Describe your fruit preferences. {AUDIO}
+
+::Q3::Repeat the following sentence: "I eat bananas." {AUDIO}
+
+{ENDBRANCH}
+
+//Video
+::Q1::Perform, to the best of your ability, the Russian hat dance. {VIDEO}
+
+//Essay
+::Q2::Describe the difficulties inherent in dancing with a bottle of liquor
+	  on top of your head. {}
+
+{ENDBRANCH}
+
+//SA
+::Q1::The War of 1812 centered around what year? {=1812#Hooray! You're not an idiot.}
+
+//Audio
+::Q2::Respond to the following prompt [ prøm p t2.mp3 | . ] {AUDIO}
+
+::Q3::Listen and repeat. [ próm pt3.mp3 | . ] {AUDIO}
+
+//Cluster
+{CLUSTER show=2}
+
+::ClusterQ1::What is the first letter of the alphabet? {=a ~b ~c}
+
+::ClusterQ2::What is the last letter of the alphabet? {=z ~y ~x}
+
+::ClusterQ3::Describe your favorite language. {}
+
+::ClusterQ4::The LMS you are currently using is called {=Moodle =moodle}
+
+{ENDCLUSTER}
+
+{ENDBRANCH}
+
+Please give an honest assessment of this lesson. {}
+
+Are you now done with this lesson? {
+	=yes
+	~no
+}
+
+Or are you now really done with this lesson? {=yes ~no}
+
+
+No, actually, you really weren't. {
+	=true#Hooray! You know how a linear progression works.
+	~false#No, you're an idiot.
+}
+
+No, actually, you really weren't. {=true#Hooray! You know how a linear progression works. ~false#No, you're an idiot.}

@@ -1,0 +1,5 @@
+::En el mercado::Escuchar y repetir las palabras [En el Mercado.mp3 | . ] {AUDIO}
+
+::En el supermercado 1::Escuchar y repetir las palabras [En el supermercado 1.mp3 | .] {AUDIO}
+
+::En un centro comercial 1::Escuchar y repetir las palabras [En un centro comercial 1.mp3 | .] {AUDIO}

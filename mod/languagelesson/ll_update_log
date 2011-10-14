@@ -1,0 +1,18 @@
+#############################################################################
+##               Update log file for Language Lesson module                ##
+#############################################################################
+## Messages are in the form <date> <archive name> <descrip of change made> ##
+#############################################################################
+11-04-19 ll_11-04-19
+11-04-19 ll_11-04-19
+11-04-22 ll_11-04-22 forced 'you have seen...' message to appear only if there has not been a complete try (allows for easier go-in-and-change-answers functionality)
+11-06-08 ll_11-06-08 Changed retry functionality to look at most recent attempt PER QUESTION, NOT on the whole lesson; forced grade update after answering any/every question
+11-06-08 ll_11-06-08 Testing multiple snapshots in one day
+11-06-08 ll_11-06-08-1 Testing multiple snapshots in a day...
+11-06-08 ll_11-06-08-2 Testing multiple snapshots in a day again...
+11-06-08 ll_11-06-08-3 Fixed saving custom grades in Grader interface; now successfully updates grades in gradebook
+11-06-21 ll_11-06-21 Overhauled mdl_languagelesson table structure, and lots of general functionality. First usable beta version for CLAMP.
+11-06-24 ll_11-06-24 Added languagelesson_manattempts and languagelesson_feedback tables, fixed their functionality
+11-06-24 ll_11-06-24-1 Fixed bug preventing seeing You
+11-06-24 ll_11-06-24-2 Set up feeding feedback filenames into feedback recorder in respond_window.php
+11-06-24 ll_11-06-24-3 Done some work on making feedback window look the way it should. Fetching other teachers and their feedback still buggy.

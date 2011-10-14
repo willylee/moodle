@@ -1,0 +1,113 @@
+Here are the differences between the GIFT format and the GIFT+ format:
+
+Removed
+- support for Numerical type questions
+- functionality in anything except Language Lessons (the GIFT+ format doesn't exist anywhere else)
+
+Added
+- Essay question type (well, it's not strictly new, but it is now supported), i.e.
+    ::<optional question name>::This is an essay question {}
+- Audio question type, i.e.
+    <::optional question name::>This is an audio question {AUDIO}
+- Video question type, i.e.
+    This is a video question {VIDEO}
+- Auto-uploading and embedding of prompt files, i.e.
+    This is an audio question with a prompt [prompt.mp3|.] {AUDIO}
+    (See below for more notes on this)
+- Branch table functionality, i.e.
+    This is a branch table { <label of first branch> | <label of second branch> | ... }
+    <question>
+    <question>
+    {ENDOFBRANCH}
+    <question>
+    ...
+    {ENDOFBRANCH}
+    ...
+    (Again, see below for more notes on this)
+- Cluster functionality, i.e.
+    {CLUSTER}
+    <question>
+    <question>
+    ...
+    {ENDOFCLUSTER}
+
+
+
+// ========= NOTES ========== //
+
+The <brackets> around things are just labels for this document--the brackets themselves
+are not required, and will probably screw stuff up.
+
+GIFT+ is the default format for importing stuff into LanguageLessons, and it is the ONLY
+one that supports any of this crap.  It's really the only one they should be using.
+
+All the fancy crap that GIFT supports (determining categories, naming questions, using
+different markup modes for the question text, etc.) should be fully supported by the
+GIFT+ format.  Kinda why it's called GIFT+.
+
+AUTO-UPLOADING/EMBEDDING
+The format is { <filename> | <text of link> }.  Typically, the text of the link will be
+something small, like a '.' -- whatever is put in the <text of link> area is equivalent
+to whatever profs type in and then highlight to link to in a WYSIWYG editor in Moodle.
+The <filename>, on the other hand, needs to be one of two things: either an absolute path
+to the file (i.e. '/Users/stuwork/Music/iTunes Media/Music/Primus/Tales from the Punchbowl/Southbound Pachyderm.mp3'
+...and yeah, I typed that from memory) or else the name of a file that's in the same folder
+as the text file being imported from. (i.e., in the example above, if prompt.mp3 isn't in
+the same folder as the text file containing that question, Moodle is going to throw a hissy
+fit.)
+To be fair, I suspect that relative linking (i.e. '../../iTunes Media/<...>/<file>.mp3')
+would be fine, but I doubt any prof is going to care enough (or be techy enough) to use
+that functionality.  In all probability, they won't even use the absolute linking.  Stress
+the crap out of the fact that if they just want to put the filename (which they probably
+all will), have the file in the same damn folder, and for God's sake, don't have any
+duplicate filenames!
+
+Also, this isn't actually working yet.  I'm on it.
+
+
+BRANCH TABLES
+This is not necessarily very intuitive, so it might take them a bit to catch on.  If you
+wanted to, say, make a lesson with four branches, called 'Activite 1', 'Activite 2',
+'Activite 3', and 'Activite fuck this shit', the declaration of the branch table would
+be like this:
+::WTF you name this::TABLE! DERP! { Activite 1 | Activite 2 | Activite 3 | Activite fuck this shit }
+
+The immediate next question after this will be viewed as the first question of the 'Activite 1'
+branch, and until the importer sees this line:
+{ENDOFBRANCH}
+everything it sees will be regarded as part of the 'Activite 1' branch.  Now then, now that
+it's seen an {ENDOFBRANCH} tag, it moves on to Activite 2--the very next question will be the
+first question of Activite 2.  There is no {BEGINBRANCH} tag, there's just the fact that
+{ENDOFBRANCH}es separate branches.
+
+There's some error correction built in, in that if you created a branch table with 4 branches,
+but you only put 3 {ENDOFBRANCH}es into the file, Moodle will let it go--it'll just think that
+everything from the third {ENDOFBRANCH} on is in the 4th branch.  Not always what's intended.
+However, if you want 4 branches, and your file has 2 {ENDOFBRANCH} tags, or 5, Moodle will flip,
+and you'll get a nice little rap on the knuckles.
+
+As for multiple tables, well, once Moodle sees the final {ENDOFBRANCH} tag (that is, after it
+has seen four of them after the last table it saw being one with 4 branches), it stops putting
+things in those branches (and just puts them in as normal follow-the-order questions), and
+you're fine to put in more tables.  You can put in as many tables as you want--if you want
+a lesson that has 40 tables in it, well, God help your students, but you're free to make it
+happen.  HOWEVER, I think (haven't tested this yet) something will go haywire if you try to
+create a branch table within another branch table.  Now, I think this is something you can
+do normally (if you're creating each page by hand), and I think it's something that should be
+able to happen, so I'll probably do some testing on it, and if it flips, I'll make it be all
+right to do.  For now, though, no recursive branch tables.
+
+
+CLUSTERS
+So, on the to-do list is making clusters a little more functional--namely, putting in quiz-like
+random question behavior, so that you can put 10 questions in a cluster and set it to show a
+random 3, 5, 8, or even 10 (if that's how you roll) to the students (in random order, of course).
+Right now, that doesn't work.  But it will, eventually, and it'll be set during importing like
+this:
+{CLUSTER show=5}
+<question1>
+<question2>
+...
+<question9>
+<question10>
+{ENDOFCLUSTER}

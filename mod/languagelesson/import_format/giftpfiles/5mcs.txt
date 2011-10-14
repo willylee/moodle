@@ -1,0 +1,9 @@
+::MC1:: Answer is 'a' { =a ~b ~c ~d }
+
+::MC2:: Answer is 'b' { ~a =b ~c ~d }
+
+::MC3:: Answer is 'c' { ~a ~b =c ~d }
+
+::MC4:: Answer is 'd' { ~a ~b ~c =d }
+
+::MC5:: Answer is 'a and b' again (boring, huh?) { ~%50%a ~%50%b ~efgh }

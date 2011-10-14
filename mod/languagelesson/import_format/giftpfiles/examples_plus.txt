@@ -1,0 +1,46 @@
+//MC
+::MC Question::Answer is a {
+	= a
+	- b
+	- c
+}
+
+//TF
+::T/F Question::True {
+	TRUE
+}
+
+//SA
+::SA Question::Please type "yes" {
+	="yes"
+	=yes
+}
+
+//Matching
+::Matching Question::Match the letters {
+	=a->A
+	=b->B
+	=c->C
+}
+
+//Essay
+::Essay Question::Describe the philosophy of Hegel {}
+
+//Audio
+::Audio Question::Listen to [filename|this optional prompt] and record an answer {AUDIO}
+
+//Video
+::Video Question::Watch [filename|this mandatory video] and record your silliest faces {VIDEO}
+
+//Instructions
+::Instructions::Follow the directions.
+
+//Branch table
+::Branch table 1::Follow these branches
+
+{BEGINBRANCH}
+{ENDBRANCH}
+
+//Cluster
+{BEGINCLUSTER}
+{ENDCLUSTER}

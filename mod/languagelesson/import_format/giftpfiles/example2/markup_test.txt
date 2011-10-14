@@ -1,0 +1,3 @@
+::html markup::[html]These are also instructions [prompt2.mp3 | .] followed by a real link <a href="notfake.html">.</a>
+
+::non-html markup::These are instructions [prompt.mp3 | .] followed by a fake link <a href="fake.html">.</a>
