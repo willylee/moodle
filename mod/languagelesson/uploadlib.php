@@ -2,6 +2,13 @@
 /* uploadlib.php
 	Functions used in uploading a RunRev submission (audio/video type question in modified lesson module)
 */
+/*
+ * NOTE that in these functions, the Moodle error() functions is not used,
+ * and an error_log followed by a return takes its place.  This is because these functions
+ * are only called in unseen pages by the Revlets, so calling error() is pointless--no one
+ * can see the error message.  As such, error_logging is done instead, so at least the admin
+ * can find the messages.
+ */
 
 
 function upload() {
@@ -35,97 +42,90 @@ function upload() {
 		
 	  /// pull the old submission for this question so we can modify it;
 	  /// if there isn't one, insert a dummy submission
-	  	$inserted_new = false;
-		$attempt = get_record("languagelesson_attempts", "lessonid", $lesson->id, "pageid", $pageid, "userid", $userid);
+	  	$firstAttempt = false;
+		$attempt = languagelesson_get_most_recent_attempt_on($pageid, $userid);
 	
-		if (!$attempt)
-		{
+		// if there was no old attempt, create a dummy submission
+		// we need this so that manattempt can have an attemptid to store
+		if (!$attempt) {
 			$attempt = insert_dummy_record($lesson->id, $pageid, $userid);
-			$inserted_new = true;
+			$firstAttempt = true;
+		// if there was, mark it as no longer current
+		} else {
+			$updater = new stdClass;
+			$updater->id = $attempt->id;
+			$updater->current = 0;
+			if (! update_record('languagelesson_attempts', $updater)) {
+				error_log("Failed to mark old attempt # $updater->id as non-current!");
+			}
 		}
+
+		// create the $uattempt object to use in updating the attempt record
+		$uattempt = new stdClass;
+		$uattempt->id = $attempt->id;
 		
-	  /// handle answerdata appropriately, depending on if this is a new submission
-	  /// or a resubmission
-		if ($inserted_new) {
+	  /// set up the manual attempt record, depending on if first attempt or not
+		if ($firstAttempt) {
 		  /// store all relevant data about student's uploaded submission
 			$manattempt = new stdClass();
 			$manattempt->lessonid = $lesson->id;
 			$manattempt->userid = $userid;
 			$manattempt->pageid = $pageid;
 			$manattempt->attemptid = $attempt->id;
-			
+			// store the question type for this attempt
 			$page = get_record('languagelesson_pages', 'id', $pageid);
 			$manattempt->type = $page->qtype;
-			
-		//////////////////////////////////////////////////
-		// AUTOMATIC GRADING
-		    /// if this lesson is to be auto-graded...
-			if ($lesson->autograde) {
-			  /// flag it as graded
-				$manattempt->graded = 1;
-			  /// set the grade to the maximum point value for this question
-				$maxscore = get_record('languagelesson_answers','id',$attempt->answerid);
-				$maxscore = $maxscore->score;
-				$attempt->score = $maxscore;
-			}
-		//////////////////////////////////////////////////
-			$manattempt->fname = $fname; //name of submitted file, NOT including relative path
-										 //within dataroot
-			$manattempt->timeseen = time();
-			
-			if (! $manattemptid = insert_record('languagelesson_manattempts', $manattempt)) {
-				error_log('Failed to upload manual attempt record for attempt ID ' . $attempt->id .
-						  ' and filename ' . $manattempt->fname . '. Bailing now...');
-				return;
-			}
-			
-			$attempt->manattemptid = $manattemptid;
 		} else {
-		  /// mark that this is a resubmission
 			$manattempt = get_record('languagelesson_manattempts', 'id', $attempt->manattemptid);
-			$manattempt->fname = $fname;
-			$manattempt->resubmit = 1;
-			$manattempt->timeseen = time();
-
 			// unset the essay attribute, as it could have single quotes in it that will make Moodle freak the fuck out
 			unset($manattempt->essay);
-			
-			if (! $update = update_record('languagelesson_manattempts', $manattempt)) {
-				error_log('Failed to update manual attempt record for manual attempt ID ' .
-						  $manattempt->id . ' with new filename ' . $manattempt->fname . '. Bailing...');
-				return;
-			}
 		}
+
+		$manattempt->fname = $fname;
+		$manattempt->timeseen = time();
+
+		// mark as resubmission if necessary
+		if (!$firstAttempt && $manattempt->graded) {
+			$manattempt->resubmit = 1;
+			$manattempt->graded = 0;
+		}
+			
+		// if this lesson is to be auto-graded...
+		if ($lesson->autograde) {
+		  	// flag it as graded
+			$manattempt->graded = 1;
+		  	// set the grade to the maximum point value for this question
+			$maxscore = get_field('languagelesson_answers', 'score', 'id', $attempt->answerid);
+			$uattempt->score = $maxscore;
+		}
+			
+		// insert/update the manual attempt record
+		if ( ($firstAttempt && ! $manattemptid = insert_record('languagelesson_manattempts', $manattempt))
+				|| (!$firstAttempt && ! update_record('languagelesson_manattempts', $manattempt)) ) {
+			error_log('Failed to upload manual attempt record for attempt ID ' . $attempt->id .
+					  ' and filename ' . $manattempt->fname . '. Bailing now...');
+			return;
+		}
+			
+		// store any other fields that need to be updated in the attempt record, including updating retry field
+		if ($firstAttempt) { $uattempt->manattemptid = $manattemptid; }
+		if (! $firstAttempt) { $uattempt->retry = $attempt->retry + 1; }
+		$uattempt->timeseen = time();
 		
-	  /// update contents
-		$attempt->timeseen = time();
-		
-	  /// update record
-		if (update_record('languagelesson_attempts', $attempt)) {
+		// update attempt record
+		if (update_record('languagelesson_attempts', $uattempt)) {
 			error_log("Student file upload and record update succeeded!");
 		} else {
 			error_log("Student file upload succeeded; record update did not.");
 		}
 	}
+
+	// if the file upload failed, log it
 	else
 	{
 		error_log("Student file upload failed.");
 	}
 }
-
-
-
-
-/*
- * NOTE that in these feedback-related functions, the Moodle error() functions is not used,
- * and an error_log followed by a return takes its place.  This is because these functions
- * are only called in unseen pages by the Revlets, so calling error() is pointless--no one
- * can see the error message.  As such, error_logging is done instead, so at least the admin
- * can find the messages.
- */
-
-
-
 
 
 
@@ -213,10 +213,14 @@ function upload_feedback() {
 				
 			}
 			
-		/// and update the manual attempt record to say it's graded
+			// and update the manual attempt record to say it's graded
 			$manattempt->graded = 1;
+			// deflag resubmission
+			$manattempt->resubmit = 0;
 			// unset the essay attribute so single quotes don't make Moodle have a seizure
 			unset($manattempt->essay);
+
+			// update manual attempt record
 			if (! $update = update_record('languagelesson_manattempts', $manattempt)) {
 				error_log("Feedback file upload succeeded, but updating manual attempt record did not");
 			} else {
@@ -241,29 +245,24 @@ function upload_feedback() {
 
 
 
-
+/* 
+ * insert a dummy answer attempt record into the lesson_attempts table;
+ * establishes lessonid, pageid, userid, and answerid
+ */
 function insert_dummy_record($lessonid, $page, $user)
 {
-	/* 
-	 * insert a dummy answer attempt record into the lesson_attempts table;
-	 * establishes lessonid, pageid, userid, and answerid
-	 */
 	$data = new Object;
 	$data->lessonid = $lessonid;
 	$data->pageid = $page;
 	$data->userid = $user;
 	$data->answerid = get_field_select("languagelesson_answers", "id", "lessonid = $lessonid and pageid = $page");
-	$data->retry = 0;
-	$data->correct = 0;
-	$data->useranswer = NULL;
-	$data->timeseen = time();
+	// since only one attempt record is kept for audio/video questions, it will ALWAYS be the current one, so
+	// mark it here as such, and then never worry about it again
+	$data->iscurrent = 1;
 	
-	if (insert_record("languagelesson_attempts", $data))
-	{
+	if (insert_record("languagelesson_attempts", $data)) {
 		return get_record("languagelesson_attempts", "lessonid", $lessonid, "pageid", $page, "userid", $user);
-	}
-	else
-	{
+	} else {
 	  /// insertion failed somehow, so mock the user mercilessly
 		error_log("Failed to insert dummy record.  Fail at being a dummy?  Epic, man.");
 	}

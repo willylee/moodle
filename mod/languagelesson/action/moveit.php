@@ -1,8 +1,8 @@
-<?php // $Id$
+<?php // $Id: moveit.php 677 2011-10-12 18:38:45Z griffisd $
 /**
  * Action for actually moving the page (database changes)
  *
- * @version $Id$
+ * @version $Id: moveit.php 677 2011-10-12 18:38:45Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -14,11 +14,16 @@
     }
     $after = required_param('after', PARAM_INT); // target page
 
+	// store the old ordering value of the page being moved
+	$oldOrderVal = $page->ordering;
+
     // first step. determine the new first page
     // (this is done first as the current first page will be lost in the next step)
     if (!$after) {
         // the moved page is the new first page
         $newfirstpageid = $pageid;
+		// set the minimum ordering value to start modifying from to 0
+		$newOrderVal = 0;
         // reset $after so that is points to the last page 
         // (when the pages are in a ring this will in effect be the first page)
         if ($page->nextpageid) {
@@ -38,6 +43,13 @@
             error("Moveit: current first page id not found");
         }
     }
+	
+	// if we haven't set $newOrderVal yet, then we're moving this page somewhere not at the beginning, so pull $newOrderVal
+	if (! isset($newOrderVal)) {
+		$newOrderVal = get_field('languagelesson_pages', 'ordering', 'id', $after);
+		$newOrderVal++;
+	}
+
     // the rest is all unconditional...
     
     // second step. join pages into a ring 
@@ -96,6 +108,46 @@
     if (!set_field("languagelesson_pages", "nextpageid", 0, "id", $newlastpageid)) {
             error("Moveit: unable to update link");
     }
+
+	// sixth step: update ordering values
+	// CASE 1: moved the page forward in the lesson, so need to update the ordering value of pages between the old location and the new
+	// location
+	if ($oldOrderVal < $newOrderVal) {
+		$changePages = get_records_select('languagelesson_pages', "lessonid=$lesson->id
+																	and ordering > $oldOrderVal
+																	and ordering < $newOrderVal", 'ordering');
+		// pages were fetched in proper order, so just crank through them and decrement ordering counter
+		foreach ($changePages as $page) {
+			if (!set_field('languagelesson_pages', 'ordering', $page->ordering - 1, 'id', $page->id)) {
+				error('Moveit: unable to decrement page ordering');
+			}
+		}
+
+		// and now set the ordering counter on the moved page
+		if (!set_field('languagelesson_pages', 'ordering', $newOrderVal - 1, 'id', $pageid)) {
+			error('Moveit: unable to update ordering value for moved page');
+		}
+
+	// CASE 2: moved the page backwards, so need to update ordering value of pages between new location and old location
+	} else {
+		$changePages = get_records_select('languagelesson_pages', "lessonid=$lesson->id
+																	and ordering < $oldOrderVal
+																	and ordering >= $newOrderVal", 'ordering');
+		// again, pages were fetch in order, so run through and increment ordering counter
+		foreach ($changePages as $page) {
+			if (!set_field('languagelesson_pages', 'ordering', $page->ordering + 1, 'id', $page->id)) {
+				error('Moveit: unable to increment page ordering');
+			}
+		}
+
+		// now set the ordering counter on the moved page
+		if (!set_field('languagelesson_pages', 'ordering', $newOrderVal, 'id', $pageid)) {
+			error('Moveit: unable to update ordering value for moved page');
+		}
+
+	}
+
+
     languagelesson_set_message(get_string('movedpage', 'languagelesson'), 'notifysuccess');
     redirect("$CFG->wwwroot/mod/languagelesson/edit.php?id=$cm->id");
 ?>

@@ -1,8 +1,8 @@
-<?php // $Id$
+<?php // $Id: move.php 637 2011-07-19 16:02:21Z griffisd $
 /**
  * Action that displays an interface for moving a page
  *
- * @version $Id$
+ * @version $Id: move.php 637 2011-07-19 16:02:21Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

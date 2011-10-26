@@ -1,4 +1,4 @@
-<?php  //$Id$
+<?php  //$Id: upgrade.php 677 2011-10-12 18:38:45Z griffisd $
 
 // This file keeps track of upgrades to 
 // the languagelesson module
@@ -246,7 +246,87 @@ function xmldb_languagelesson_upgrade($oldversion=0) {
 		$result = add_field($table, $field);
 
 	}
-	
+
+
+	// add an "iscurrent" binary flag to the attempts table for faster retrieval of most recent attempts
+	if ($result && $oldversion < 2011092801) {
+
+		$table = new XMLDBTable('languagelesson_attempts');
+		$field = new XMLDBField('iscurrent');
+		$field->setAttributes(XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, 0, 'retry');
+		$result = add_field($table, $field);
+
+		$data = get_records_sql("select *
+								 from {$CFG->prefix}languagelesson_attempts
+								 order by userid, pageid, retry desc");
+
+		$ID = 0;
+		$RETRY = 1;
+
+		$attempts_toupdate = array();
+		foreach ($data as $datum) {
+			if (!array_key_exists($datum->userid, $attempts_toupdate)) {
+				$attempts_toupdate[$datum->userid] = array();
+			}
+			if (!array_key_exists($datum->pageid, $attempts_toupdate[$datum->userid])) {
+				$attempts_toupdate[$datum->userid][$datum->pageid] = array();
+				$attempts_toupdate[$datum->userid][$datum->pageid][$ID] = $datum->id;
+				$attempts_toupdate[$datum->userid][$datum->pageid][$RETRY] = $datum->retry;
+			}
+		}
+
+		foreach ($attempts_toupdate as $user => $pagearr) {
+			foreach ($pagearr as $page => $adata) {
+				$record = new stdClass;
+				$record->id = $adata[$ID];
+				$record->iscurrent = 1;
+
+				if (! update_record('languagelesson_attempts', $record)) {
+					error("Failed to flag highest-retry-value record as current record! user $user, page $page, retry
+							".$adata[$RETRY]);
+				}
+			}
+		}
+	}
+
+
+	// add the "ordering" field to pages table for easier page-sorting
+	if ($result && $oldversion < 2011100501) {
+		
+		$table = new XMLDBTable('languagelesson_pages');
+		$field = new XMLDBField('ordering');
+		$field->setAttributes(XMLDB_TYPE_INTEGER, '3', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, 0, 'nextpageid');
+		$result = add_field($table, $field);
+
+
+
+		// now mark all pages with their ordering values
+
+		// start by pulling the list of languagelessons, so we can order them one at a time
+		$all_lls = get_records('languagelesson');
+
+		foreach($all_lls as $llid => $ll) {
+			// if there are no pages, skip this languagelesson
+			if (! count_records('languagelesson_pages', 'lessonid', $llid)) { continue; }
+
+			// pull the id of the first page as the next page to look at
+			$nextpageid = get_field('languagelesson_pages', 'id', 'lessonid', $llid, 'prevpageid', '0');
+			$ordering = 0;
+			// now, while there is a next page to look at, update that next page's ordering value
+			do {
+				$upage = new stdClass;
+				$upage->id = $nextpageid;
+				$upage->ordering = $ordering++;
+
+				if (! update_record('languagelesson_pages', $upage)) {
+					error("Failed to assign ordering in lesson $llid, failed on page $nextpageid");
+				}
+
+				$nextpageid = get_field('languagelesson_pages', 'nextpageid', 'lessonid', $llid, 'id', $nextpageid);
+			} while ($nextpageid);
+		}
+	}
+
 
 	return $result;
 }

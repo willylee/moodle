@@ -1,8 +1,8 @@
-<?php  // $Id$
+<?php  // $Id: edit.php 673 2011-09-01 20:40:12Z griffisd $
 /**
  * Provides the interface for overall authoring of lessons
  *
- * @version $Id$
+ * @version $Id: edit.php 673 2011-09-01 20:40:12Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

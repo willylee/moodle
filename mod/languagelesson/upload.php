@@ -1,4 +1,4 @@
-<?php  // $Id$
+<?php  // $Id: upload.php 661 2011-07-26 21:21:30Z griffisd $
 
 /*
  * uploadparams -- params fed into the uploadtarget

@@ -1,8 +1,8 @@
-<?php //$Id$
+<?php //$Id: restorelib.php 651 2011-07-22 21:27:21Z griffisd $
 /**
  * This php script contains all the stuff to restore lesson mods
  *
- * @version $Id$
+ * @version $Id: restorelib.php 651 2011-07-22 21:27:21Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

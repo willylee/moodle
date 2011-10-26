@@ -1,4 +1,4 @@
-<?php // $Id$
+<?php // $Id: access.php 671 2011-08-11 21:45:41Z griffisd $
 /**
  * Capability definitions for the languagelesson module.
  *

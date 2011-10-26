@@ -1,4 +1,4 @@
-<?php // $Id$
+<?php // $Id: format.php 673 2011-09-01 20:40:12Z griffisd $
 //
 ///////////////////////////////////////////////////////////////
 // The GIFT import filter was designed as an easy to use method 

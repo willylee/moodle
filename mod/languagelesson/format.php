@@ -1,9 +1,9 @@
-<?php  // $Id$ 
+<?php  // $Id: format.php 677 2011-10-12 18:38:45Z griffisd $ 
 /**
  * format.php  - Default format class for file imports/exports. Doesn't do 
  * everything on it's own -- it needs to be extended.
  *
- * @version $Id$
+ * @version $Id: format.php 677 2011-10-12 18:38:45Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -178,6 +178,9 @@ class qformat_default {
                         }
                     }
                     //$newpage->contents = $question->questiontext;
+
+					// mark the ordering value
+					$newpage->ordering = $count;
 
                     // set up page links
                     if ($pageid) {

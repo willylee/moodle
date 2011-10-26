@@ -1,9 +1,9 @@
-<?php // $Id$
+<?php // $Id: version.php 677 2011-10-12 18:38:45Z griffisd $
 /**
  * Code fragment to define the version of languagelesson
  * This fragment is called by moodle_needs_upgrading() and /admin/index.php
  *
- * @version $Id$
+ * @version $Id: version.php 677 2011-10-12 18:38:45Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package languagelesson
  **/

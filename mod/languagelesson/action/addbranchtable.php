@@ -1,8 +1,8 @@
-<?php // $Id$
+<?php // $Id: addbranchtable.php 676 2011-09-16 19:53:22Z griffisd $
 /**
  *  Action for adding a branch table.  Prints an HTML form.
  *
- * @version $Id$
+ * @version $Id: addbranchtable.php 676 2011-09-16 19:53:22Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

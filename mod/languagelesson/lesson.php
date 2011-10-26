@@ -1,4 +1,4 @@
-<?php  // $Id$
+<?php  // $Id: lesson.php 637 2011-07-19 16:02:21Z griffisd $
 /**
  * Handles lesson actions
  * 
@@ -16,7 +16,7 @@
  *    move
  *    moveit
  *    updatepage
- * @version $Id$
+ * @version $Id: lesson.php 637 2011-07-19 16:02:21Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

@@ -1,8 +1,8 @@
-<?php // $Id$
+<?php // $Id: continue.php 677 2011-10-12 18:38:45Z griffisd $
 /**
  * Action for processing page answers by users
  *
- * @version $Id$
+ * @version $Id: continue.php 677 2011-10-12 18:38:45Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -12,7 +12,6 @@
     require_once($CFG->libdir.'/blocklib.php');
     require_once($CFG->dirroot.'/mod/languagelesson/locallib.php');
     require_once($CFG->dirroot.'/mod/languagelesson/lib.php');
-
 
 /////////////////////////////////////////////////////
 // TIMER CHECK
@@ -125,12 +124,13 @@
 			
 			// if the student had previously submitted an attempt on this question, and it has since been graded,
 			// mark this new submission as a resubmit
-			if ($prevAttempt = languagelesson_get_attempt($page->id, $USER->id)) {
+			if ($prevAttempt = languagelesson_get_most_recent_attempt_on($page->id, $USER->id)) {
 				if (! $oldManAttempt = get_record('languagelesson_manattempts', 'attemptid', $prevAttempt->id)) {
 					error('Failed to fetch matching manual_attempt record for old attempt on this question!');
 				}
 				if ($oldManAttempt->graded && !$lesson->autograde) {
 					$manualattempt->resubmit = 1;
+					$manualattempt->graded = 0;
 				}
 			}
         
@@ -716,25 +716,12 @@
             
         case LL_AUDIO:
         case LL_VIDEO:
+			// all attempt record handling is done in upload function, so don't need to do anything here
+
         	$newpageid = get_field('languagelesson_pages', 'nextpageid', 'id', $page->id);
-        	
-		/// if retaking a lesson, it's entirely possible to not create a new submission for a/v files; since tracker pulls
-		//answer/submission data selecting on MAX(retry),
-		/// need to make sure that the retry field of the old submission matches the retry fields of all other questions in the attempt
-        	//pull current attempt count and old submission data
-       		//$retries = count_records('languagelesson_grades', "lessonid", $lesson->id, "userid", $USER->id);
-       		$retries = count_records('languagelesson_attempts', 'lessonid', $lesson->id, 'userid', $USER->id, 'pageid', $page->id);
-       		$data = get_record('languagelesson_attempts', "lessonid", $lesson->id, "userid", $USER->id, "pageid", $page->id);
-       		// if retry field needs to be updated, update it
-       		if ($data->retry != $retries) {
-       			$data->retry = $retries;
-       			$data->timeseen = time(); //tracker sorts by timeseen, so be sure to update this, too
-       			update_record('languagelesson_attempts', $data);
-       		}
-			
 			$correctanswer = true;
        		
-            // note that we don't need to make any changes in languagelesson_attempts
+            // mark that we don't need to make any changes in languagelesson_attempts
             $skip_record_changing = true;
             break;
          
@@ -762,8 +749,20 @@
 		if (!has_capability('mod/languagelesson:manage', $context)) {
 			/// If we don't need to change attempts records, don't do so
 			if (!$skip_record_changing) {
-			  /// nretakes reflects the number of times the answer to THIS PARTICULAR QUESTION has been changed
-				$nretakes = count_records("languagelesson_attempts", "lessonid", $lesson->id, "userid", $USER->id, "pageid", $page->id);
+
+				// pull the retry value for this attempt, and handle deflagging former current attempt 
+				if ($oldAttempt = languagelesson_get_most_recent_attempt_on($page->id, $USER->id)) {
+					$nretakes = $oldAttempt->retry + 1;
+
+					// update the old attempt to no longer be marked as the current one
+					$uattempt = new stdClass;
+					$uattempt->id = $oldAttempt->id;
+					$uattempt->iscurrent = 0;
+
+					if (! update_record('languagelesson_attempts', $uattempt)) {
+						error('Failed to deflag former current attempt!');
+					}
+				} else { $nretakes = 0; }
 				
 				// record student's attempt
 				$attempt = new stdClass;
@@ -772,13 +771,15 @@
 				$attempt->userid = $USER->id;
 				$attempt->answerid = $answerid;
 				$attempt->retry = $nretakes;
+				// flag this as the current attempt
+				$attempt->iscurrent = 1;
 				$attempt->correct = $correctanswer;
 				$attempt->score = $score;
 				if(isset($userresponse)) {
 					$attempt->useranswer = $userresponse;
 				}
 				$attempt->timeseen = time();
-				
+
 			/// every try is recorded as a new one (by increasing retry value), so just insert this one
 				if (!$newattemptid = insert_record("languagelesson_attempts", $attempt)) {
 					error("Continue: attempt not inserted");
@@ -975,7 +976,11 @@
 		redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id&amp;pageid=$thispageid"
 				 ."&amp;showfeedback=1&amp;aid=$aid" . ((isset($atext)?"&amp;atext=$atext":''))
 				 .(($nopageid) ? '' : "&amp;nextpageid=$newpageid"));
-    } else {
+    } else if ($page->qtype == LL_AUDIO || $page->qtype == LL_VIDEO) {
+		// if it's an audio or video, force showing same page again to confirm successful submission
+		redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id&amp;pageid=$thispageid"
+				 .(($nopageid) ? '' : "&amp;nextpageid=$newpageid"));
+	} else {
         // Don't display feedback
         redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id"
 				 . (($nopageid) ? '' : "&amp;pageid=$newpageid"));

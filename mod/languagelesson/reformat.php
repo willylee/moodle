@@ -1,8 +1,8 @@
-<?php // $Id$
+<?php // $Id: reformat.php 637 2011-07-19 16:02:21Z griffisd $
 /**
  * jjg7:8/9/2004
  *
- * @version $Id$
+ * @version $Id: reformat.php 637 2011-07-19 16:02:21Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

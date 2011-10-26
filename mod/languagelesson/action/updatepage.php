@@ -1,8 +1,8 @@
-<?php // $Id$
+<?php // $Id: updatepage.php 675 2011-09-16 19:27:51Z griffisd $
 /**
  * Action for processing the form in editpage action and saves the page
  *
- * @version $Id$
+ * @version $Id: updatepage.php 675 2011-09-16 19:27:51Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

@@ -1,8 +1,8 @@
-<?php // $Id$
+<?php // $Id: index.php 651 2011-07-22 21:27:21Z griffisd $
 /**
  * This page lists all the instances of lesson in a particular course
  *
- * @version $Id$
+ * @version $Id: index.php 651 2011-07-22 21:27:21Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

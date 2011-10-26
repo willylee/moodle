@@ -1,8 +1,8 @@
-<?php // $Id$
+<?php // $Id: insertpage.php 677 2011-10-12 18:38:45Z griffisd $
 /**
  * Action for processing the form from addpage action and inserts the page.
  *
- * @version $Id$
+ * @version $Id: insertpage.php 677 2011-10-12 18:38:45Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -34,6 +34,9 @@
         $newpage->lessonid = clean_param($lesson->id, PARAM_INT);
         $newpage->prevpageid = clean_param($form->pageid, PARAM_INT);
         $newpage->nextpageid = clean_param($page->nextpageid, PARAM_INT);
+		// set the ordering value for the new page as the order val for prev page + 1
+		$lastOrderVal = get_field('languagelesson_pages', 'ordering', 'id', $newpage->prevpageid);
+		$newpage->ordering = $lastOrderVal + 1;
         $newpage->timecreated = $timenow;
         $newpage->qtype = $form->qtype;
         if (isset($form->qoption)) {

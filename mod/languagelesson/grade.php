@@ -1,4 +1,4 @@
-<?php  // $Id$
+<?php  // $Id: grade.php 637 2011-07-19 16:02:21Z griffisd $
 
     require_once("../../config.php");
 

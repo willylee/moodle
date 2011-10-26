@@ -1,4 +1,4 @@
-<?php // $Id$
+<?php // $Id: assignment.class.php 637 2011-07-19 16:02:21Z griffisd $
 
 /**
  * Extend the base assignment class for assignments where you upload a single file

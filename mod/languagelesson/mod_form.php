@@ -1,9 +1,9 @@
-<?php  // $Id$
+<?php  // $Id: mod_form.php 673 2011-09-01 20:40:12Z griffisd $
 /**
  * Form to define a new instance of lesson or edit an instance.
  * It is used from /course/modedit.php.
  *
- * @version $Id$
+ * @version $Id: mod_form.php 673 2011-09-01 20:40:12Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

@@ -1,4 +1,4 @@
-<?php  // $Id$
+<?php  // $Id: mediafile.php 637 2011-07-19 16:02:21Z griffisd $
 /**
  * This file plays the mediafile set in lesson settings.
  *
@@ -7,7 +7,7 @@
  *  If there is a way to use the resource class instead of this code, please change to do so
  *
  *
- * @version $Id$
+ * @version $Id: mediafile.php 637 2011-07-19 16:02:21Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

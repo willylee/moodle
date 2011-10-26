@@ -1,8 +1,8 @@
-<?php // $Id$
+<?php // $Id: addendofcluster.php 641 2011-07-21 18:55:58Z griffisd $
 /**
  * Action for adding an end of cluster page
  *
- * @version $Id$
+ * @version $Id: addendofcluster.php 641 2011-07-21 18:55:58Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

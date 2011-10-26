@@ -1,8 +1,8 @@
-<?php  // $Id$
+<?php  // $Id: report.php 674 2011-09-02 19:50:09Z griffisd $
 /**
  * Displays the lesson statistics.
  *
- * @version $Id$
+ * @version $Id: report.php 674 2011-09-02 19:50:09Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/

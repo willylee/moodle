@@ -1,4 +1,4 @@
-<?PHP // $Id$ 
+<?PHP // $Id: languagelesson.php 677 2011-10-12 18:38:45Z griffisd $ 
       // language_lesson.php - created with Moodle 1.9.9 beta + (2010082600)
 
 $string['accesscontrol'] = 'Access control';
@@ -336,7 +336,7 @@ $string['emailmessagehtml'] = '$a->teacher has posted feedback for your submissi
 
 $string['automaticgrading'] = "Automatic grading";
 
-$string['assigngradecolumnheader'] = "Assign grade (0-100)";
+$string['assigngradecolumnheader'] = "Grade (0-100)";
 $string['assigngradesbutton'] = "Assign grades";
 $string['savedgradecolumnheader'] = "Saved grade";
 $string['improperholisticgrade'] = "Please enter a grade between 0 and 100.";

@@ -1,8 +1,8 @@
-<?php // $Id$
+<?php // $Id: addpage.php 677 2011-10-12 18:38:45Z griffisd $
 /**
  *  Action for adding a question page.  Prints an HTML form.
  *
- * @version $Id$
+ * @version $Id: addpage.php 677 2011-10-12 18:38:45Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package languagelesson
  **/
@@ -276,7 +276,7 @@
 	</script>
 	<input type="submit" onclick="setAction('addpage');" value="<?php print_string('add4moreanswerfields', 'languagelesson'); ?>" />
 	<br /><br />
-    <input type="submit" onclick="setAction('insertpage');" value="<?php print_string("addaquestionpage", "languagelesson") ?>" />
+    <input type="submit" onclick="setAction('insertpage');" value="<?php print_string("savepage", "languagelesson") ?>" />
     <input type="submit" onclick="setAction('insertpage');" name="cancel" value="<?php print_string("cancel") ?>" />
     </fieldset>
     </form>

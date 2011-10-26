@@ -1,8 +1,8 @@
-<?php // $Id$
+<?php // $Id: delete.php 677 2011-10-12 18:38:45Z griffisd $
 /**
  * Action for deleting a page
  *
- * @version $Id$
+ * @version $Id: delete.php 677 2011-10-12 18:38:45Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -66,6 +66,15 @@
             error("Delete: unable to set prev link");
         }
     }
+
+	// repair the hole in the ordering
+	$changePages = get_records_select('languagelesson_pages', "ordering > $thispage->ordering", 'ordering');
+	foreach ($changePages as $page) {
+		if (!set_field('languagelesson_pages', 'ordering', $page->ordering - 1, 'id', $page->id)) {
+			error('Delete: unable to update ordering value');
+		}
+	}
+
     languagelesson_set_message(get_string('deletedpage', 'languagelesson').': '.format_string($thispage->title, true), 'notifysuccess');
     redirect("$CFG->wwwroot/mod/languagelesson/edit.php?id=$cm->id");
 ?>

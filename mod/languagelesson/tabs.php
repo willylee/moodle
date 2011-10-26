@@ -1,10 +1,10 @@
-<?php  // $Id$
+<?php  // $Id: tabs.php 671 2011-08-11 21:45:41Z griffisd $
 /**
 * Sets up the tabs used by the lesson pages for teachers.
 *
 * This file was adapted from the mod/quiz/tabs.php
 *
-* @version $Id$
+* @version $Id: tabs.php 671 2011-08-11 21:45:41Z griffisd $
 * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
 * @package lesson
 */

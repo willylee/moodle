@@ -366,6 +366,23 @@
 	border-spacing:10px 0px;
 }
 
+.mod-languagelesson .grader_content_column_cell {
+	vertical-align: top;
+}
+.mod-languagelesson #stunames_column_cell {
+	width: 20%;
+}
+.mod-languagelesson #lesson_map_cell {
+	width: 60%;
+}
+.mod-languagelesson #right_column_cell {
+	width: 20%;
+}
+.mod-languagelesson #lesson_map_container {
+	max-width: 900px;
+	overflow: auto;
+}
+
 .mod-languagelesson .item_cell {
 	border: 1px black solid;
 	width: 20px;
@@ -406,6 +423,20 @@
 
 .mod-languagelesson .stuname_cell {
 	
+}
+
+.mod-languagelesson .student_row {
+	height: 30px;
+}
+
+.mod-languagelesson .header_row {
+	height: 50px;
+}
+
+.mod-languagelesson #stunames_column {
+	text-align: right;
+	width: 100%;
+	white-space: nowrap;
 }
 
 .mod-languagelesson .eob_cell {
