@@ -1,10 +1,10 @@
-<?php // $Id$
+<?php // $Id: view.php 677 2011-10-12 18:38:45Z griffisd $
 /**
  * This page prints the main interface for a languagelesson instance
  *
  * @package languagelesson
  * @category mod 
- * @version $Id$
+ * @version $Id: view.php 677 2011-10-12 18:38:45Z griffisd $
  * @author $Author: griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  */
@@ -245,7 +245,7 @@
 		
 	/// whether or not they've completed it before, we'll need the list of most recent
 	/// attempts on the questions in this lesson, so pull it
-		$attempts = languagelesson_get_most_recent_attempts_sorted($lesson->id, $USER->id);
+		$attempts = languagelesson_get_most_recent_attempts($lesson->id, $USER->id);
 		
 		
 		
@@ -842,7 +842,7 @@
 	/// their old answer for them, and flag that we need to do so
 		$showOldAttempt = false;
 		if (($lesson->showoldanswer || $nomoreattempts)
-			&& $oldAttempt = languagelesson_get_most_recent_attempt_on($lesson->id, $USER->id, $page->id)) {
+			&& $oldAttempt = languagelesson_get_most_recent_attempt_on($page->id, $USER->id)) {
 			
 			$showOldAttempt = true;
 		}
@@ -1200,7 +1200,7 @@
 				case LL_ESSAY :
 					$value = '';
 					
-					if ($attempt = languagelesson_get_attempt($page->id, $USER->id)) {
+					if ($attempt = languagelesson_get_most_recent_attempt_on($page->id, $USER->id)) {
 						if (!$manattempt = get_record('languagelesson_manattempts', 'attemptid', $attempt->id)) {
 							error('Retrieved attempt record, but failed to retrieve manual attempt record!');
 						}
@@ -1247,7 +1247,7 @@
             		
             		$hassubmitted = false; //default behavior: it's a new try on a new question
 				
-					if ($attempt = languagelesson_get_attempt($page->id, $USER->id)) {
+					if ($attempt = languagelesson_get_most_recent_attempt_on($page->id, $USER->id)) {
 						if (!$manattempt = get_record('languagelesson_manattempts', 'attemptid', $attempt->id)) {
 							error('Failed to retrieve corresponding manual attempt record for this attempt.');
 						}
@@ -1282,7 +1282,7 @@
 					echo "\t\tuploadpath=\"".preg_replace('/[^\/]*\.php/', '', $_SERVER['SCRIPT_NAME'])."upload.php\"\n";
 					echo "\t\tuploadparams=\"id=" . $cm->id . "&pageid=" . $pageid . "&userid=" . $USER->id . "&sesskey=" . sesskey() .
 						"\"\n";
-					echo "\t\tsubmitscript=\"document.forms['submissionform'].submit();\"\n";
+					echo "\t\tsubmitscript=\"document.forms['answerform'].submit();\"\n";
 					
 					/// pull in the ending template
 					include($CFG->dirroot . "/mod/languagelesson/runrev/revB.php");
@@ -1473,7 +1473,10 @@
 	//////////////////////////////////////////////////////
         
         // Finish printing the page
-        languagelesson_print_progress_bar($lesson, $course); ?>
+        languagelesson_print_progress_bar($lesson, $course);
+		echo '<a href="https://docs.google.com/a/carleton.edu/spreadsheet/viewform?formkey=dGw5bjNrN2tjS3MwbC05NnVnNV9HZFE6MQ"
+			target="_blank" style="font-size:0.75em; margin-top:25px;">Report a problem</a>';
+		?>
 				</td>
 				<?php if (languagelesson_blocks_have_content($lesson, $pageblocks, BLOCK_POS_RIGHT)) { ?>
 				<td id="right-column" style="width: <?php echo $rightcolumnwidth; ?>px;">
@@ -1491,6 +1494,7 @@
 				<?php } ?>
 			</tr>
 		</table><?php
+
     }
 	
 	
@@ -1649,8 +1653,6 @@
 	
 // </if the page was EOL> /////////////////////////////////
 ///////////////////////////////////////////////////////////
-
-
 
 
 

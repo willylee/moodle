@@ -1,9 +1,9 @@
-<?php // $Id$
+<?php // $Id: locallib.php 677 2011-10-12 18:38:45Z griffisd $
 /**
  * Local library file for Lesson.  These are non-standard functions that are used
  * only by Lesson.
  *
- * @version $Id$
+ * @version $Id: locallib.php 677 2011-10-12 18:38:45Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -1623,7 +1623,7 @@ function languagelesson_is_page_in_cluster($pages, $pageid) {
                     manualpoints => point value for manually graded questions }
  */
 function languagelesson_grade($lesson, $userid = 0) {  
-    global $USER;
+    global $USER, $LL_QUESTION_TYPE;
 	
     if ($userid == 0) {
         $userid = $USER->id;
@@ -1641,75 +1641,62 @@ function languagelesson_grade($lesson, $userid = 0) {
     
 	$thegrade    	= 0;	// the raw (out of 100) grade assigned
     
-	if (!$lesson->penalty && ($pageattempts = languagelesson_get_most_recent_attempts($lesson->id, $userid, true)) ||
-		$lesson->penalty && ($pageattempts = languagelesson_get_all_attempts($lesson->id, $userid, true))) {
+	if (!$lesson->penalty && ($pageattempts = languagelesson_get_most_recent_attempts($lesson->id, $userid)) ||
+		$lesson->penalty && ($pageattempts = languagelesson_get_all_attempts($lesson->id, $userid))) {
 		
 	//////////////////////////////////////
 	// GET THE ANSWERS
-		/// pull all the pages for this lesson, as the most recent attempts won't
+		/// pull all the question pages for this lesson, as the most recent attempts won't
 		/// necessarily include every page
-		$allpages = get_records_select("languagelesson_pages", "lessonid = $lesson->id");
-		/// construct an array of their IDs
-		$allPageIDs = array();
-		foreach ($allpages as $page) { $allPageIDs[] = $page->id; }
+		$pages = get_records_select('languagelesson_pages', "lessonid=$lesson->id AND qtype in
+				(".implode(',',array_keys($LL_QUESTION_TYPE)).')',
+					'ordering');
 		/// pull the answers for these page IDs to calculate earned and total points
 		$answers = get_records_select("languagelesson_answers", "lessonid = $lesson->id
-										AND pageid IN (".implode(',',$allPageIDs).")");
+										AND pageid IN (".implode(',', array_keys($pages)).")");
 	// </get the answers>
 	//////////////////////////////////////
 		
 		
 	//////////////////////////////////////
 	// FILL IN INITIAL VALUES
-		/// $useranswers includes a record for each question page, regardless of whether
-		/// the student answered it or not, so count how many they did actually answer
-		$nanswered = languagelesson_count_most_recent_attempts($lesson->id, $userid);
+		// store the number of pages they attempted
+		$nanswered = count($pageattempts);
 		
-		/// use $pageattempts to count the number of total questions, for which we don't
-		/// care if the user answered or not
-		$ntotal = count($pageattempts);
+		// and store the number of question pages there are total
+		$ntotal = count($pages);
 	// </fill in initial vals>
 	//////////////////////////////////////
 		
 		
 	//////////////////////////////////////
 	// GET GRADING INFO
-		
+
 	/// handle grading only most recent attempts
 		if (!$lesson->penalty) {
 			foreach ($pageattempts as $pageattempt) {
-				/// if they actually answered for that page
-				if ($pageattempt->correct != null) {
-					// mark it as answered
-					$nanswered++;
-					
-					// and if it's saved as correct, the type doesn't matter,
-					// so mark it
-					if ($pageattempt->correct) {
-						$ncorrect++;
-						$earnedpts += $pageattempt->score;
-					}
-					// if it's not, it's possible that it's a type allowing partially correct, so check that
-					else if ($pageattempt->qtype == LL_CLOZE) {
-						$earnedpts += $pageattempt->score;
-					}
-					// if it's not, though, it may be an ungraded manual, so check
-					else if ($pageattempt->qtype == LL_ESSAY ||
-							   $pageattempt->qtype == LL_AUDIO ||
-							   $pageattempt->qtype == LL_VIDEO) {
-						$nmanual++;
-						
-						/// if we got here, this may be a non-autograded lesson;
-						/// if so, record the possible points for this qustion in manualpoints
-						if (!$lesson->autograde) {
-							$manualpoints += $answers[$pageattempt->answerid]->score;
-						}
-					}
-					// otherwise, it's just straight-up wrong, so ignore it
-					
+				// if it's saved as correct, the type doesn't matter, so mark it
+				if ($pageattempt->correct) {
+					$ncorrect++;
+					$earnedpts += $pageattempt->score;
 				}
-				/// if they haven't answered it yet, ignore it
-				//else { }
+				// if it's not, it's possible that it's a type allowing partially correct, so check that
+				else if ($pageattempt->qtype == LL_CLOZE) {
+					$earnedpts += $pageattempt->score;
+				}
+				// if it's not, though, it may be an ungraded manual, so check
+				else if ($pageattempt->qtype == LL_ESSAY ||
+						   $pageattempt->qtype == LL_AUDIO ||
+						   $pageattempt->qtype == LL_VIDEO) {
+					$nmanual++;
+					
+					/// if we got here, this may be a non-autograded lesson;
+					/// if so, record the possible points for this qustion in manualpoints
+					if (!$lesson->autograde) {
+						$manualpoints += $answers[$pageattempt->answerid]->score;
+					}
+				}
+				// otherwise, it's just straight-up wrong, so ignore it
 			}
 		}
 		
@@ -1761,7 +1748,7 @@ function languagelesson_grade($lesson, $userid = 0) {
 				}
 				
 			/// handle manualpoints if this isn't an autograded lesson
-			/// NOTE that $pageattemptset[0] will always exist, by how languagelesson_get_attempts
+			/// NOTE that $pageattemptset[0] will always exist, by how
 			/// is written
 				if (!$lesson->autograde &&
 						$pageattemptset[0]->qtype == LL_ESSAY ||
@@ -1774,8 +1761,8 @@ function languagelesson_grade($lesson, $userid = 0) {
 		
 	// </get grading info>
 	//////////////////////////////////////
-		
-		
+
+
 		
 	//////////////////////////////////////
 	// CALCULATE MAXIMUM POSSIBLE SCORE FOR LESSON
@@ -1794,7 +1781,7 @@ function languagelesson_grade($lesson, $userid = 0) {
 		
 	/// Find the highest possible score per page
 		foreach ($answersByPageID as $pageid => $answerset) {
-			$page = $allpages[$pageid];
+			$page = $pages[$pageid];
 		/// if we're looking at a page with multiple correct answers, sum their scores
 			if (($page->qtype == LL_MULTICHOICE && $page->qoption) // it's a multiple-choice with multiple correct answers
 				|| $page->qtype == LL_MATCHING
@@ -2569,23 +2556,26 @@ function languagelesson_find_first_unanswered_pageid($lessonid, $userid) {
  * have a recorded attempt by input $userid for input $retry value;
  */
 	
-	/// pull the user's attempt record for every page in this lesson (including pages
-	/// they haven't actually attempted yet)
-	$attempts = languagelesson_get_most_recent_attempts_sorted($lessonid, $userid, true);
-	
-	/// and now loop over them in order (since they're sorted in order of lesson progression)
-	/// and return the first one that doesn't actually have an attempt for it
+	// pull the list of the user's attempts for this lesson 
+	$attempts = languagelesson_get_most_recent_attempts($lessonid, $userid);
+	// and pull the lesson's pages in order
+	$pages = get_records('languagelesson_pages', 'lessonid', $lessonid, 'ordering');
+
+	// loop over the attempts to store the pageids of all pages seen
+	$seenpages = array();
 	foreach ($attempts as $attempt) {
-		/// use === for hardcore null check; if it is null,
-		/// then the user hasn't attempted that question yet, so return it
-		if ($attempt->correct === null) {
-			return $attempt->pid;
+		$seenpages[] = $attempt->pageid;
+	}
+	
+	// now loop through the pages until we find one with no attempt
+	foreach ($pages as $pageid => $page) {
+		if (! in_array($pageid, $seenpages)) {
+			return $pageid;
 		}
 	}
 
-	/// we looped through all the attempts and didn't find an unanswered page, so return nada
+	// otherwise, all pages have been attempted, return null
 	return null;
-
 }
 
 
@@ -2712,8 +2702,6 @@ function languagelesson_is_lesson_complete($lessonid, $userid) {
 	/// see how many questions have been attempted
 	$numattempts = languagelesson_count_most_recent_attempts($lessonid, $userid);
 
-	error_log("numqpages is $numqpages, numattempts is $numattempts");
-	
 	/// if the number of question pages matches the number of attempted questions, it's complete
 	if ($numqpages == $numattempts) { return true; }
 	else { return false; }
@@ -2734,16 +2722,10 @@ function languagelesson_get_autograde_state($lessonid, $pageid, $userid, $retry=
 	global $CFG;
 	
 	if ($retry===null) {
-		//default behavior; pull the max retry value for the page
-		$retry = get_record_sql("select MAX(retry) as retry
-					  						 from {$CFG->prefix}languagelesson_attempts
-					  						 where lessonid=$lessonid
-					  						   and userid=$userid
-					  						   and pageid=$pageid");
-		$retry = $retry->retry;
+		$retry = get_field('languagelesson_attempts', 'retry', 'iscurrent', 1, 'userid', $userid, 'pageid', $pageid);
 	}
 	
-	$result = get_record_select('languagelesson_attempts', "lessonid=$lessonid and pageid=$pageid and userid=$userid" . (($retry !== null) ? " and retry=$retry" : ''));
+	$result = get_record_select('languagelesson_attempts', "lessonid=$lessonid and pageid=$pageid and userid=$userid and iscurrent=1");
 	if ($result) {
 		if ($result->manattemptid !== null) {
 			return 'manual';
@@ -2830,11 +2812,7 @@ function languagelesson_count_most_recent_attempts($lesson, $user) {
 					where a.pageid = p.id
 					  and a.lessonid = $lesson
 					  and a.userid = $user
-					  and a.retry =	(select MAX(retry)
-									from {$CFG->prefix}languagelesson_attempts att
-									where att.pageid = p.id
-									  and att.lessonid = $lesson
-									  and att.userid = $user)";
+					  and a.iscurrent = 1";
 	$result = count_records_sql($querytext);
 	
 	return $result;
@@ -2849,65 +2827,11 @@ function languagelesson_count_most_recent_attempts($lesson, $user) {
  *
  * @param int $lessonid The languagelesson ID to fetch attempts for
  * @param int $userid The user ID to fetch attempts by
- * @param bool $forceall Should we return a record for every page, regardless of if there is an attempt for it?
- * @param bool $questionsonly Should this fetch attempts only for question pages?
- * @param bool $forceifnone Should we force returning the attempts array, even if no attempts exist?
  * @return array $attempts Array of attempt record objects, one for each page in the languagelesson
  */
-function languagelesson_get_most_recent_attempts($lessonid, $userid, $forceall=false, $questionsonly=true, $forceifnone=false) {
-	return languagelesson_get_attempts($lessonid, $userid, true, $forceall, $questionsonly, $forceifnone);
+function languagelesson_get_most_recent_attempts($lessonid, $userid) {
+	return languagelesson_get_attempts($lessonid, $userid, true);
 }
-
-
-
-
-
-/*
- * Fetches most recent attempts by $user on $lesson, sorted by page order
- *
- * @param $lesson -> lessonid to fetch attempts for
- * @param $user -> userid to fetch attempts for
- * @param bool $forceall Should we return a record for every page, regardless of if there is an attempt for it?
- * @param bool $questionsonly Should this fetch attempts only for question pages?
- * @param bool $forceifnone Should we force returning the attempts array, even if no attempts exist?
- */
-function languagelesson_get_most_recent_attempts_sorted($lesson, $user, $forceall=false, $questionsonly=true, $forceifnone=false) {
-	
-	/// pull the pages for this lesson, sorted in lesson progression order
-	$spages = languagelesson_get_sorted_pages($lesson);
-	
-	/// pull the user's recorded attempt for each page (NOTE that this returned array
-	/// is GUARANTEED to have an attempt (and exactly 1) for each pageID)
-	$attempts = languagelesson_get_most_recent_attempts($lesson, $user, $forceall, $questionsonly, $forceifnone);
-	
-	/// if this user has not made any actual attempts, return null
-	if (!$attempts) { return null; }
-	
-	/// build the array mapping each pageID to the corresponding attempt
-	$atts_by_pageid = array();
-	foreach($attempts as $attempt) {
-		$atts_by_pageid[$attempt->pid] = $attempt;
-	}
-	
-	/// and use it to sort the attempts in lesson progression order
-	$sortedAttempts = array();
-	foreach($spages as $page) {
-		if (array_key_exists($page->id, $atts_by_pageid)) {
-			$sortedAttempts[] = $atts_by_pageid[$page->id];
-		}
-	}
-	
-	/// finally, if it's non-empty return the sorted attempts array
-	if (count($sortedAttempts) > 0) {
-		return $sortedAttempts;
-	} else {
-		return null;
-	}
-}
-
-
-
-
 
 
 
@@ -2916,15 +2840,12 @@ function languagelesson_get_most_recent_attempts_sorted($lesson, $user, $forceal
  *
  * @param int $lessonid The languagelesson ID to fetch attempts for
  * @param int $userid The user ID to fetch attempts by
- * @param bool $forceall Should we return a record for every page, regardless of if there is an attempt for it?
- * @param bool $questionsonly Should this fetch attempts only for question pages?
- * @param bool $forceifnone Should we force returning the attempts array, even if no attempts exist?
  * @return array $pageattempts 2-D array of pageID => [ attempts by user on that page ]
  */
-function languagelesson_get_all_attempts($lessonid, $userid, $forceall=false, $questionsonly=true, $forceifnone=false) {
+function languagelesson_get_all_attempts($lessonid, $userid) {
 	// pull all attempt sets for the lesson (this func call return a 2-d array, where subarrays are
 	// attempt sets on pages)
-	$atts = languagelesson_get_attempts($lessonid, $userid, false, $forceall, $questionsonly, $forceifnone);
+	$atts = languagelesson_get_attempts($lessonid, $userid, false);
 	// if the user has not recorded any actual attempts, $atts will be empty, so bail
 	if (!$atts) { return null; }
 	// initialize the array to map them to
@@ -2932,7 +2853,7 @@ function languagelesson_get_all_attempts($lessonid, $userid, $forceall=false, $q
 	// crank through the attempt sets
 	foreach($atts as $attempt) {
 		// pull the page ID for this attempt
-		$thispageid = $attempt->pid;
+		$thispageid = $attempt->pageid;
 		// and map it
 		if (!array_key_exists($thispageid, $pageattempts)) {
 			$pageattempts[$thispageid] = array();
@@ -2957,233 +2878,35 @@ function languagelesson_get_all_attempts($lessonid, $userid, $forceall=false, $q
  * @param int $lesson The lessonid to fetch attempts for
  * @param int $user The userid to fetch attempts for
  * @param bool $mostrecent Should we only be fetching the most recent attempt on each question?
- * @param bool $forceall Should we return a record for every page, regardless of if there is an attempt for it?
- * @param bool $questionsonly Should we only be returning records for question pages?
- * @param bool $forceifnone Should we force returning the attempts array, even if no attempts exist?
  * @return array $attempts An array of attempt record objects, one for each page that the user has
  * 							submitted an attempt for (returns only the most recent attempt for
  * 							each page)
  */
-function languagelesson_get_attempts($lesson, $user, $mostrecent, $forceall=false, $questionsonly, $forceifnone=false) {
-	global $CFG, $LL_QUESTION_TYPE;
-	
-	/// build the string representation of the page question types representing actual question pages
-	$qtypesarr = implode(',', array_keys($LL_QUESTION_TYPE));
-	
-	$querytext = languagelesson_build_attempts_query($lesson, $user, $mostrecent, $questionsonly, $qtypesarr, $forceall);
-	$attempts = get_records_sql($querytext);
-	
-	/// if we're only looking for stuff that exists, we just got it, so return it here
-	if (!$forceall && !$forceifnone) {
-		return $attempts;
-	}
-	
-	/// count the number of pages expected to have records for
-	if ($questionsonly) {
-		$numqs = count_records_select('languagelesson_pages', "lessonid = $lesson
-															   and qtype in ($qtypesarr)");
-	} else {
-		$numqs = count_records('languagelesson_pages', 'lessonid', $lesson);
-	}
-	
-	/// count the number of pages we got records for
-	if ($attempts) {
-		if ($mostrecent) {
-			$numpagesseen = count($attempts);
-		} else {
-			$seenPageIDs = array();
-			foreach ($attempts as $attempt) {
-				if (!in_array($attempt->pid, $seenPageIDs)) {
-					$seenPageIDs[] = $attempt->pid;
-				}
-			}
-			$numpagesseen = count($seenPageIDs);
-		}
-	} else {
-		$numpagesseen = 0;
-	}
-	
-	/// initialize the flag marking if ANY attempts exist for this user on this lesson
-	$flag = true;
-	
-	///HACK to get around Moodle's handling of get_records_sql; above query returns only
-	///one record in the case of students who have not attempted any part of the lesson///
-	/// compare the two counts to see if the above query failed to get the right contents
-	if ($numpagesseen != $numqs) {
-		/// since we got here, it's possible that this user has no attempts on this lesson, so
-		/// set the flag to false
-		$flag = false;
-		///dealing with incomplete or unstarted lesson attempt, so pull individual records
-		///for each page sequentially, and build the $attempts array that way
-		$spages = languagelesson_get_sorted_pages($lesson);
-		$attempts = array(); //clear out $attempts
-		///pull each question-user record by itself
-		foreach ($spages as $page) {
-			$querytext = languagelesson_build_attempts_query($lesson, $user, $mostrecent, $questionsonly, $qtypesarr, $forceall, true,
-					$page->id);
-			
-			if ($mostrecent) {
-				$thisattempt = get_record_sql($querytext);
-				/// if we haven't yet seen an actual attempt, check if this is one; if so, flag this set
-				if (!$flag && !($thisattempt->correct === null)) { $flag = true; }
-				$attempts[] = $thisattempt;
-			} else {
-				$thisattemptset = get_records_sql($querytext);
-				/// check if there are any actual attempts here, if necessary
-				if (!$flag) {
-					foreach ($thisattemptset as $item) {
-						if ($item->correct !== null) { $flag = true; }
-					}
-				}
-				/// and save each attempt in the attempts array
-				foreach ($thisattemptset as $attempt) {
-					$attempts[] = $attempt;
-				}
-			}
-		}
-	}
-	///end HACK///
-	
-	/// if this set is flagged, at least one attempt has been made by this user on this lesson, so
-	/// return the set of attempts; alternatively, if the function was told to force returning the
-	/// set, return it
-	if ($flag || $forceifnone) {
-		return $attempts;
-	} else {
-		return null;
-	}
-}
-
-
-
-
-
-/**
- * Constructs the custom SQL query required for different situations in languagelesson_get_attempts
- *
- * @param int $lessonid The ID of the lesson pulling attempts for
- * @param int $userid The ID of the user whose attempts we're pulling
- * @param bool $mostrecent Are we pulling only the most recent attempt by this user for each question?
- * @param bool $questionsonly Are we pulling records only for question-type pages?
- * @param string $qtypesarr The comma-separated string of page types representing question pages
- * @param bool $forceall Should we return a record for every page, even if it doesn't have an attempt recorded?
- * @param bool $onebyone Are we constructing this query for one page only?
- * @param int $pageid The page ID to construct the attempt for
- * @return string $query The text of the SQL query to run in languagelesson_get_attempts
- */
-function languagelesson_build_attempts_query($lessonid, $userid, $mostrecent, $questionsonly, $qtypesarr, $forceall, $onebyone = false,
-		$pageid = -1) {
+function languagelesson_get_attempts($lesson, $user, $mostrecent) {
 	global $CFG;
 	
-/// build the master query frame, based on if we want to get a record for every page, regardless of if it has an attempt recorded or not
-	if ($forceall) {
-		$primary = "select *, p.id as pid
-					from ({$CFG->prefix}languagelesson_pages p
-						  left outer join
-						  (%SECONDARY%) a
-						  on p.id = a.pageid
-						  and p.lessonid = a.lessonid)
-					where p.lessonid = $lessonid
-					  %PAGEIDSELECTOR%
-					  %QTYPESELECTOR%
-					%ORDERBY%";
-	} else {
-		$primary = "select *, p.id as pid
-					from {$CFG->prefix}languagelesson_pages p,
-						 (%SECONDARY%) a
-					where p.id = a.pageid
-					  and p.lessonid = a.lessonid
-					  and p.lessonid = $lessonid
-					  %PAGEIDSELECTOR%
-					  %QTYPESELECTOR%
-					%ORDERBY%;";
-	}
+	$select = "select a.*, p.ordering as ordering, p.qtype as qtype";
+
+	$from = "from ({$CFG->prefix}languagelesson_pages p
+				inner join
+				{$CFG->prefix}languagelesson_attempts a
+				on p.id = a.pageid)";
 	
+	$where = "where p.lessonid=$lesson
+				and a.userid=$user"
+				. (($mostrecent) ? ' and a.iscurrent=1' : '');
+
+	$orderby = "order by p.ordering" . ((!$mostrecent) ? ', a.retry' : '');
+
+	$query =	"$select
+				$from
+				$where
+				$orderby";
+
+	$attempts = get_records_sql($query);
 	
-/// build the first nested query, used to pull the relevant attempt records to be joined to the pages
-	$secondary = "select atmp.*
-				  from {$CFG->prefix}languagelesson_attempts atmp,
-					   (select *
-						from {$CFG->prefix}languagelesson_pages
-						where lessonid = $lessonid) pgs
-				  where atmp.userid = $userid
-				    and atmp.pageid = pgs.id
-					%RETRYCONDITION%";
-	
-	
-/// build the condition subquery for pulling only the most recent attempt
-	$where_mostrecent = "atmp.id = (select att.id
-									from {$CFG->prefix}languagelesson_attempts att
-									where att.pageid = pgs.id
-									  and att.lessonid = $lessonid
-									  and att.userid = $userid
-									  and att.retry = (%MAXRETRY%))";
-	
-	
-/// build the query that pulls the highest retry value for a user/lesson/page
-/// this is a separate variable only for the sake of clarity in the code
-	$maxretry = "select MAX(retry)
-				 from {$CFG->prefix}languagelesson_attempts ratt
-				 where ratt.pageid = pgs.id
-				   and ratt.lessonid = $lessonid
-				   and ratt.userid = $userid";
-	
-	
-/// construct the most-recent-getting condition
-	$where_mostrecent = str_replace("%MAXRETRY%", $maxretry, $where_mostrecent);
-	
-	
-/// construct the conditions for pulling attempts, based on the input bool $mostrecent
-	$conditions = (($mostrecent) ? " and " . $where_mostrecent : "");
-	
-	
-/// construct the attempts query, using the conditions we have constructed above
-	$secondary = str_replace("%RETRYCONDITION%", $conditions, $secondary);
-	
-	
-/// include the nested attempts query in the primary query
-	$primary = str_replace("%SECONDARY%", $secondary, $primary);
-	
-/// if this query is for one page only, include the relevant condition in the primary query
-	$pageidselector = (($onebyone) ? "and p.id = $pageid" : "");
-	$primary = str_replace("%PAGEIDSELECTOR%", $pageidselector, $primary);
-	
-/// if we're pulling only question-type pages, include the relevant selection condition
-	$qtypeselector = (($questionsonly) ? "and p.qtype in ($qtypesarr)" : "");
-	$primary = str_replace("%QTYPESELECTOR%", $qtypeselector, $primary);
-	
-/// if we're getting all attempts, make sure the output is ordered by retry values
-	$orderby = ((!$mostrecent) ? "order by a.retry asc" : "");
-	$primary = str_replace("%ORDERBY%", $orderby, $primary);
-	
-/// the query is complete, so return it
-	return $primary;
+	return $attempts;
 }
-
-
-
-
-
-/**
- * Get a single attempt record by a user on a page (the most recent record is returned)
- * @param int pageid The page ID to check attempts for
- * @param int userid The user ID to check attempts by
- */
-function languagelesson_get_attempt($pageid, $userid) {
-	global $CFG;
-	$query = 	"select id
-				 from {$CFG->prefix}languagelesson_attempts
-				 where pageid=$pageid
-				   and userid=$userid
-				   and retry=(select MAX(retry)
-							  from {$CFG->prefix}languagelesson_attempts
-							  where pageid=$pageid
-								and userid=$userid)";
-	return get_record_sql($query);
-}
-
-
-
 
 
 
@@ -3215,19 +2938,13 @@ function languagelesson_get_last_branch_table_seen($lesson, $user) {
 /**
  * @NEEDSDOC@
  */
-function languagelesson_get_most_recent_attempt_on($lesson, $user, $page) {
+function languagelesson_get_most_recent_attempt_on($page, $user) {
 	global $CFG;
-	
 	$query = "select *
 	          from {$CFG->prefix}languagelesson_attempts
-			  where lessonid=$lesson
-			    and userid=$user
+			  where userid=$user
 				and pageid=$page
-				and retry=(select MAX(retry)
-				           from {$CFG->prefix}languagelesson_attempts
-						   where lessonid=$lesson
-						     and userid=$user
-							 and pageid=$page)";
+				and iscurrent=1";
 	
 	$result = get_record_sql($query);
 	
@@ -3429,6 +3146,9 @@ function languagelesson_print_feedback_table($manattempt, $gradingmode=false) {
 	if ($gradingmode) { $where .= ' and not isnull(text)'; }
 	
 	$feedbacks = get_records_select('languagelesson_feedback', $where);
+
+	$hasFeedbackFiles = count_records_select('languagelesson_feedback', "manattemptid = $manattempt->id
+																		 and not isnull(fname)");
 	
 	
 /// if this was called from view.php ($gradingmode=false), then only print anything if there
@@ -3734,7 +3454,8 @@ function languagelesson_print_feedback_table($manattempt, $gradingmode=false) {
 	}
 
 	// if there are no feedbacks, just display a FeedbackPlayer revlet with the student file in it
-	else if ($manattempt->type == LL_AUDIO) {
+	//else if ($manattempt->type == LL_AUDIO) {
+	if (! $gradingmode && ! $hasFeedbackFiles && $manattempt->type == LL_AUDIO) {
 
 		echo '<div>'.get_string('yousubmitted', 'languagelesson').'</div>';
 		echo '<div class="submissionTime">'.userdate($manattempt->timeseen).'</div>';

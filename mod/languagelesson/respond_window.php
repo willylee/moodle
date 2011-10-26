@@ -490,7 +490,7 @@ require_once('lib.php');
 			$nextattempt = null;
 		} else {
 			$nextpageid = $sortedpages[$thispageindex + 1]->id;
-			$nextattempt = languagelesson_get_attempt($nextpageid, $userid);
+			$nextattempt = languagelesson_get_most_recent_attempt_on($nextpageid, $userid);
 		}
 		
 		if (($thispageindex - 1) < 0) {
@@ -498,7 +498,7 @@ require_once('lib.php');
 			$prevattempt = null;
 		} else {
 			$prevpageid = $sortedpages[$thispageindex - 1]->id;
-			$prevattempt = languagelesson_get_attempt($prevpageid, $userid);
+			$prevattempt = languagelesson_get_most_recent_attempt_on($prevpageid, $userid);
 		}
 		
 		
@@ -513,7 +513,7 @@ require_once('lib.php');
 			$offset = 1;
 			$nextstuid = $studentIDs[$thisStudentIndex + $offset];
 			while ($thisStudentIndex + $offset < count($studentIDs)
-				   && !$nextstuattempt = languagelesson_get_attempt($attempt->pageid, $nextstuid)) {
+				   && !$nextstuattempt = languagelesson_get_most_recent_attempt_on($attempt->pageid, $nextstuid)) {
 				$offset++;
 				$nextstuid = $studentIDs[$thisStudentIndex + $offset];
 			}
@@ -546,6 +546,10 @@ require_once('lib.php');
 		</tr>
 	</table>
 			
+	<div style="text-align:center">
+		<a href="https://docs.google.com/a/carleton.edu/spreadsheet/viewform?formkey=dGw5bjNrN2tjS3MwbC05NnVnNV9HZFE6MQ"
+			target="_blank" style="font-size:0.75em; margin-top:25px;">Report a problem</a>
+			</div>
 	
 </form>
 
