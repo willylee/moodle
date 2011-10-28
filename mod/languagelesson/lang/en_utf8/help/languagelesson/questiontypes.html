@@ -1,9 +1,9 @@
 <h1>Question Types</h1>
 
-<p>The types of Questions currently supported by the Lesson module are:
+<p>The types of Questions currently supported by the Language Lesson module are:
 
 <ol>
-<li><p><b>Multichoice</b> This is the default question type. Multichoice questions
+<li><p><b>Multiple choice</b> This is the default question type. Multiple choice questions
     are popular questions where the student is asked to choose one answer from a
     set of alternatives. The correct answer takes the student further into the
     lesson, the wrong answers do not. The wrong answers are sometimes called the
@@ -11,164 +11,53 @@
     on the quality of the distractors than either the questions themselves or their
     correct answers.</p>
 
-<p> Each answer can optionally have a response. If no response is
-    entered for an answer then the default response &quot;That's the Correct
+<p> Each answer can optionally have customized feedback. If no feedback is
+    entered for an answer then the default feedback &quot;That's the Correct
     Answer&quot; or &quot;That's the Wrong Answer&quot; is shown to the student.  </p>
 
-<p>It is possible to have more than one correct answer to a multichoice question.
-    The different correct answers may give the student different responses and
+<p>It is possible to have more than one correct answer to a Multiple choice question.
+    The different correct answers may give the student different feedback and
     jump to different (forward) pages in the lesson but
     do not vary in their grades, (that is, some answers are <b>not</b> more correct
     than others, at least in terms of grade.) It is possible for all the answers
     to be correct and they might take the student to different (forward) parts of
     the lesson depending on which one is chosen.</p>
 
-<p>There is variant of Multichoice questions called <b>&quot;Multichoice
+<p>There is variant of Multiple choice questions called <b>&quot;Multiple choice
     Multianswer&quot;</b> questions. These require the student to select all the
     correct answers from the set of answers. The question may or may not tell
     the student how many correct answers there are. For example &quot;Which of the
     following were US Presidents?&quot; does not, while "Select the two US
     presidents from the following list." does. The actual number of correct
-    answers can be from <b>one</b> up to the number of choices. (A Multichoice
+    answers can be from <b>one</b> up to the number of choices. (A Multiple choice
     Multianswer question with one correct answer <b>is</b> different from a
-    Multichoice question as the former allows the student the possibility of
-    choosing more than one answer while the latter does not.)</p>
+    Multiple choice question as the former allows the student the possibility of
+    choosing more than one answer while the latter does not.)</p></li>
 
-<p>Again the correct answers are flagged using forward jumps, the wrong answers
-    by same page or backward jumps. When there is more than one correct answer
-    the jumps should all go to the same page, similarly with the wrong answers.
-    If that is <b>not</b> the case a warning is given on the teacher's view of
-    the lesson. The correct response, if required, should be given on the first
-    correct answer and the wrong response, if required, should be on the first
-  wrong answer. Responses on the other answers are ignored (without warning).  </p></li>
-
+<li><p><b>True/False</b> The answer to this type of question only has two options,
+    true or false. The student is prompted to choose which is the correct
+    option. This type of question is basically a Multiple choice question with just
+    two choices.</p></li>
+    
 <li><p><b>Short Answer</b> </p>
   <p>The student is prompted for a short piece of text.
     This is checked against one or more answers. Answers can be either correct
-    or wrong. Each answer can optionally have a response. If no response is
+    or wrong. Each answer can optionally have customized feedback. If no feedback is
     entered for an answer then the default response &quot;That's the Correct
     Answer&quot; or &quot;That's the Wrong Answer&quot; is shown to the student.
     If the text entered does not match any of the answers the question is wrong
     and the student is shown the default wrong response.</p>
-  <p><strong>There are two different comparison systems</strong> available for the 
-      Short Answer type of question: the simple system is used by default; the 
-      &quot;Regular Expressions&quot; system is used if the &quot;Use Regular 
-      Expressions&quot; option box is checked. </p>
-  <ul>
-    <li><strong>Simple analysis</strong>
-      <p>In this (default) system of analysis, the comparisons ignore the case of the text. The 
-        asterisk (*) character can be used in answers as a &quot;wild card&quot;
-        character. It stands for any number of characters (including no characters
-        at all). For example, the answer &quot;Long*&quot; will match
-        &quot;longer&quot;, &quot;longest&quot; and &quot;long&quot;. If one of
-        the answers is just &quot;*&quot; (a single *) this answer will match
-        anything, it is normally used as the last &quot;catch-all&quot; answer. The
-        matching process goes through the answers in the order they appear on the
-        screen. Once a match is found the process stops and the corresponding
-        result (and response, if present) is returned. So, if for example the
-        answers are Longest, Long* and * (in that order), the input
-        &quot;longer&quot; will match the second answer and, in this case, the
-        third answer, although a match, is ignored.</p>
-      <p> If an asterisk (*) is actually needed in an answer, it should be entered as
-        \*, backslash asterisk.</p>
-    </li>
-  </ul>
-  <ul>
-    <li><strong>Regular Expressions analysis</strong>
-      <p>This system gives you access to a more powerful but more complicated system for 
-          analysing the student's answers. For a complete introduction to Regular Expressions, 
-          see these sites <a href="http://www.zend.com/zend/tut/tutorial-delin2.php" target="_blank">regular-expressions 
-          tutorial</a> or <a href="http://perso.wanadoo.fr/joseph.rezeau/eao/developpement/expandRegexpToString.htm#" 
-          target="_blank">rezeau.org</a>. </p>
-      <h3>Correct answer matching a regular expression pattern </h3>
-      <p>It is not possible to give complete examples of the vast possibilities offered 
-          by this system, and the following are just some possibilities. </p>
-      <p><strong>Example 1.</strong> Suppose your question is &quot;What are the colors 
-          of the French flag?&quot;. In the Answer 1 frame you type this regular 
-          expression: &quot;<span class="c_computeroutput">it&rsquo;s blue, white(,| and) 
-          red</span>/i&quot;. This will match any of those four student answers:</p>
-      <ul>
-        <li>it&rsquo;s blue, white, red</li>
-        <li>it&rsquo;s blue, white and red</li>
-        <li>It&rsquo;s blue, white, red</li>
-        <li>It&rsquo;s blue, white and red </li>
-      </ul>
-      <p>Please note that by default a regular expression match is case sensitive; to 
-          make the match case insensitive you must add the <strong>/i</strong> parameter 
-          right at the end of your expression.</p>
-      <p><strong>Example 2</strong>. Question: &quot;What is blue, or red, or yellow?&quot;. 
-          Answer: &quot;(|it's )a colou?r&quot;. This will match:</p>
-      <ul>
-        <li>a colour</li>
-        <li> a color</li>
-        <li>it's a colour</li>
-        <li>it's a color</li>
-      </ul>
-      <p>Notes.- The beginning of this regular expression &quot;(|it's )&quot; will 
-          match either nothing or &quot;it's  &quot; (i.e. &quot;it's&quot; followed by 
-          a space). The ? (question-mark) means: preceding character zero or one time; 
-          it is used here to match British English as well as US spelling.</p>
-      <p><strong>Example 3.</strong> Question: &quot;Name an animal whose name is made 
-          of 3 letters and the middle letter is the vowel <em>a</em>&quot;. Answer: 
-          &quot;[bcr]at&quot;. This will match: bat, cat and rat. </p>
-      <h3>Detecting missing required words or character strings</h3>
-      <p>Regular expressions alone cannot detect absent character strings, so you have to 
-          add a little code in your Answer to take care of this. Any Teacher Answer which 
-          begins with a double hyphen will analyze the student&rsquo;s answer to find out 
-          whether the following string is present or absent. If present, the analysis 
-          continues to the next question; if absent, the analysis stops and the relevant 
-          Response message is displayed.</p>
-      <p><strong>Example 4.  </strong></p>
-      <ul>
-        <li>Answer 2: <span class="c_computeroutput">--.*blue.*</span>/i</li>
-        <li>student answer: &quot;it's red and white&quot; </li>
-        <li>Response 2: <span class="c_computeroutput">The color of the sky is missing!</span></li>
-        <li>Jump 2: <span class="c_computeroutput">this page</span></li>
-      </ul>
-      <p>Here, the . (dot) stands for &ldquo;any character&rdquo; and the * (asterisk) 
-          means &ldquo;preceding special character repeated any number of times&rdquo;. 
-          The Answer2 regular expression above means: check whether the character string 
-          &quot;blue&quot;, preceded with anything and followed by anything is absent 
-          from the student's answer. Please note that the use of the asterisk is different 
-          in the Simple analysis system and in the Regular Expressions system.</p>
-      <p><strong>Example 5.</strong> Question: &quot;Name an animal whose name is made of 
-          3 letters and the middle letter is the vowel <em>a</em>&quot;. Teacher Answer: &quot;--[b|c|r]&quot;. Response: &quot;Your answer should start with one of these letters: b, c or r&quot; </p>
-      <h3>Detecting unwanted (incorrect) words or character strings</h3>
-      <p>You may want to detect, in the student's answer, the presence of one or several 
-          words which should be <strong>not</strong> be there (because they are wrong) and 
-          to single them out with a specific response. Just start your teacher Answer by a 
-          double plus sign (++). </p>
-      <p><strong>Example 6. </strong></p>
-      <ul>
-        <li>Answer 3: ++(yellow|black|orange|green|black|pink)/i</li>
-        <li>student answer: &quot;it's blue, orange and white&quot; </li>
-        <li>Response 3: One or more colors are wrong!</li>
-        <li>Jump 3: this page</li></ul>
-        <p>If any of these (wrong) colors is detected in the student&rsquo;s answer, 
-            then the negative feedback message (Response 3) will be displayed and the 
-            wrong strings will be colored red (or the color of the .incorrect class if 
-            it exists in a CSS stylesheet of your active theme).</p>
-      <p><strong>Example 7</strong>. Question: &quot;Name an animal whose name is made 
-          of 3 letters and the middle letter is the vowel <em>a</em>&quot;. Teacher 
-          Answer: &quot;++hat&quot;. Response: &quot;You might wear one made of an 
-          animal's skin, but a hat can't be considered as an animal.&quot;   </p>
-      <h3>Escaping special characters </h3>
-      <p>If you need to use characters which are part of the regular expressions set 
-          of <em>special characters</em>, you need to &quot;escape&quot; them (i.e. precede 
-          them with a backslash). E.g. if you want to accept the answer &quot;My computer 
-          cost 1000$&quot;, you must write the regular expression as &quot;My computer cost 
-          1000\$&quot;. The special characters which must be escaped are .^$*()[]+?|</p>
-    </li>
-  </ul>
+    <p>Check the Case Sensitive box to enforce case sensitivity.  If checked, answers submitted that do not match the case of the provided answers will be considered wrong.</p>
 </li>
 
-<li><p><b>True/False</b> The answer to this type of question only has two options,
-    true or false. The student is prompted to choose which is the correct
-    option. This type of question is basically a Multichoice question with just
-    two choices.</p></li>
+<li><p><b>Cloze</b> </p>
+  <p>Cloze exericses allow you to insert gaps into a larger piece of text.  Instructors can mark gaps by using the Anchor button in the WYSIWYG editor, naming the anchor the number of the question.  Below the WYSIWYG editor, there are text boxes where you can specify the answer.  Gaps are presented as text boxes, unless you check the Use Drop-down Box checkbox.  It is possible to mix text field gaps and drop-down menu gaps in the same question. </p>
+  <p>Rather than having customized feedback per gap, instructors can customize the 'correct' and 'incorrect' feedback for the question as a whole.</p>
+    <p>Check the Case Sensitive box to enforce case sensitivity.  If checked, answers submitted that do not match the c
+    case of the provided answers will be considered wrong.</p>
+</li>
 
-<li><p><b>Matching</b> These are quite powerful and flexible questions. They
-    consist of a list of names or statements which must be correctly matched
+<li><p><b>Matching</b> These consist of a list of names or statements which must be correctly matched
     against other list of names or statements. For example &quot;Match the
     Capital with the Country&quot; with the two lists Japan, Canada, Italy and
     Tokyo, Ottawa, Rome. It is possible to have repeated entries in one of the
@@ -184,7 +73,7 @@
     <b>not</b> support custom responses, the student is told how many matches
     are correct or if all the matches are correct.</p>
 
-<p>Unlike the Multichoice question where the choices are shown in a random
+<p>Unlike the Multiple choice question where the choices are shown in a random
     order, the first list of items is <b>not</b> shuffled but shown in the same
     order as entered. This allows for <b>&quot;Ordered&quot;</b> questions to be
     constructed. Consider the question &quot; Put the following into the order
@@ -221,4 +110,16 @@
     after the correct answer. That is the answers are ordered 3.33:3.34 (the
     &quot;correct&quot; answer) then 3:4 (the &quot;wrong&quot; answer, but
     not wildly wrong answer!).</p></li>
+
+<li><p><b>Essay</b> </p>
+  <p>Essay questions present students with the WYSIWYG editor so that they can type in a longer response to be evaluated by the instructor later.</p>
+</li>
+
+<li><p><b>Audio</b> </p>
+  <p>Audio questions present the student with an audio recorder embedded in the middle of the page directly below the question prompt text.  Students can record their oral responses as many times as necessary before submitting a response to the question.  The length of the audio recording is directly dependant on the upload file size limit imposed by the Moodle server, course and assignment settings.</p>
+</li>
+
+<li><p><b>Video</b> </p>
+  <p>Video questions present the student with a video recorder embedded in the middle of the page directly below the question prompt text.  Students can record their responses as many times as necessary before submitting a response to the question.  The length of the video recording is directly dependant on the upload file size limit imposed by the Moodle server, course and assignment settings.</p>
+</li>
 </ol>
