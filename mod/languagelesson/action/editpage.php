@@ -83,7 +83,7 @@
 
 	/// print out the tabbed question type selector and any qoption checkbox that may exist
 		echo '<b>'.get_string("questiontype", "languagelesson").":</b> \n";
-		echo helpbutton("questiontypes", get_string("questiontype", "languagelesson"), "lesson")."<br />";
+		echo helpbutton("questiontypes", get_string("questiontype", "languagelesson"), "languagelesson")."<br />";
 		languagelesson_qtype_menu($LL_QUESTION_TYPE, $page->qtype, 
 						  "lesson.php?id=$cm->id&amp;action=editpage&amp;pageid=$page->id",
 						  "getElementById('editpage').redisplay.value=1;getElementById('editpage').submit();");
@@ -109,7 +109,7 @@
 				} else {
 					echo "<input type=\"checkbox\" id=\"qoption\" name=\"qoption\" value=\"1\" />";
 				}
-				helpbutton("questionoption", get_string("questionoption", "languagelesson"), "lesson");
+				helpbutton("questionoption", get_string("questionoption", "languagelesson"), "languagelesson");
 				echo "</p>\n";
 				break;
 			default :
@@ -284,7 +284,7 @@
 					if ($n == 2) {
 						echo "<tr><td><b>".get_string("correctanswerjump", "languagelesson").":</b> \n";
 						choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
-						helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+						helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 						echo get_string("correctanswerscore", "languagelesson").": <input type=\"text\" name=\"score[$n]\"
 							value=\"$answer->score\" size=\"5\" />";
 						echo "</td></tr>\n";
@@ -292,7 +292,7 @@
 					if ($n == 3) {
 						echo "<tr><td><b>".get_string("wronganswerjump", "languagelesson").":</b> \n";
 						choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
-						helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+						helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 						echo get_string("wronganswerscore", "languagelesson").": <input type=\"text\" name=\"score[$n]\"
 							value=\"$answer->score\" size=\"5\" />";
 						echo "</td></tr>\n";
@@ -304,7 +304,7 @@
 				case LL_ESSAY :
 					echo "<tr><td><b>".get_string("jump", "languagelesson").":</b> \n";
 					choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
-					helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 					echo get_string("score", "languagelesson").": <input type=\"text\" name=\"score[$n]\" value=\"$answer->score\"
 						size=\"5\" />";
 					echo "</td></tr>\n";
@@ -315,7 +315,7 @@
 				//case LL_NUMERICAL:
 					echo "<tr><td><b>".get_string("jump", "languagelesson")." $nplus1:</b> \n";
 					choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
-					helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 					echo get_string("score", "languagelesson")." $nplus1: <input type=\"text\" name=\"score[$n]\"
 						value=\"$answer->score\" size=\"5\" />";
 					echo "</td></tr>\n";
@@ -326,7 +326,7 @@
 				case LL_ENDOFBRANCH:
 					echo "<tr><td><b>".get_string("jump", "languagelesson")." $nplus1:</b> \n";
 					choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
-					helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 					echo "</td></tr>\n";
 					break;
 				case LL_CLOZE :
@@ -421,7 +421,7 @@
 					if ($i < 1) {
 						echo "<tr><td><b>".get_string("jump", "languagelesson").":</b> \n";
 						choose_from_menu($jump, "jumpto[$i]", 0, "");
-						helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+						helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 						echo get_string("score", "languagelesson").": <input type=\"text\" name=\"score[$i]\" value=\"$answer->score\"
 							size=\"5\" />";
 						echo "</td></tr>\n";
@@ -431,7 +431,7 @@
 					if ($i == 2) {
 						echo "<tr><td><b>".get_string("correctanswerjump", "languagelesson").":</b> \n";
 						choose_from_menu($jump, "jumpto[$i]", $answer->jumpto, "");
-						helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+						helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 						echo get_string("correctanswerscore", "languagelesson").": <input type=\"text\" name=\"score[$i]\"
 							value=\"$answer->score\" size=\"5\" />";
 						echo "</td></tr>\n";
@@ -439,7 +439,7 @@
 					if ($i == 3) {
 						echo "<tr><td><b>".get_string("wronganswerjump", "languagelesson").":</b> \n";
 						choose_from_menu($jump, "jumpto[$i]", $answer->jumpto, "");
-						helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+						helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 						echo get_string("wronganswerscore", "languagelesson").": <input type=\"text\" name=\"score[$i]\"
 							value=\"$answer->score\" size=\"5\" />";
 						echo "</td></tr>\n";
@@ -457,14 +457,14 @@
 				//case LL_NUMERICAL:
 					echo "<tr><td><b>".get_string("jump", "languagelesson")." $iplus1:</b> \n";
 					choose_from_menu($jump, "jumpto[$i]", 0, "");
-					helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 					echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\" value=\"0\" size=\"5\" />";
 					echo "</td></tr>\n";
 					break;
 				case LL_BRANCHTABLE :
 					echo "<tr><td><b>".get_string("jump", "languagelesson")." $iplus1:</b> \n";
 					choose_from_menu($jump, "jumpto[$i]", 0, "");
-					helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 					echo "</td></tr>\n";
 					break;
 				default :
@@ -500,7 +500,7 @@
 			echo "</td></tr>\n";
 			echo "<tr><td><b>".get_string("correctanswerjump", "languagelesson").":</b> \n";
 			choose_from_menu($jump, "correctanswerjump", $correctjump, "");
-			helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+			helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 			echo "</td></tr>\n";
 			// print the wrong response editor
 			echo "<tr><td><b><label for=\"edit-wrongresponse\">".get_string('wrongresponse', 'languagelesson')."
@@ -510,7 +510,7 @@
 			echo "</td></tr>\n";
 			echo "<tr><td><b>".get_string("wronganswerjump", "languagelesson").":</b> \n";
 			choose_from_menu($jump, "wronganswerjump", $wrongjump, "");
-			helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+			helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 			echo "</td></tr>\n";
 		}
 	}
