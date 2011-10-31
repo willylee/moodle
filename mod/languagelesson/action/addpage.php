@@ -55,7 +55,7 @@
 	}
 
     // give teacher a blank proforma
-    print_heading_with_help(get_string("addaquestionpage", "languagelesson"), "overview", "lesson");
+    print_heading_with_help(get_string("addaquestionpage", "languagelesson"), "overview", "languagelesson");
     ?>
     <form id="form" method="post" action="lesson.php" class="addform">
     <fieldset class="invisiblefieldset fieldsetfix">
@@ -67,7 +67,7 @@
     <input type="hidden" name="sesskey" value="<?php echo $USER->sesskey ?>" />
       <?php
         echo '<b>'.get_string("questiontype", "languagelesson").":</b> \n";
-        echo helpbutton("questiontypes", get_string("questiontype", "languagelesson"), "lesson")."<br />";
+        echo helpbutton("questiontypes", get_string("questiontype", "languagelesson"), "languagelesson")."<br />";
         languagelesson_qtype_menu($LL_QUESTION_TYPE, $qtype, 
                           "lesson.php?id=$cm->id&amp;action=addpage&amp;pageid=".$pageid.$linkadd);
 
