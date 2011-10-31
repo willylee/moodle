@@ -86,7 +86,7 @@
             echo "<label for=\"qoption\"><strong>$qoptionstr</strong></label>";
 			echo "<input type=\"checkbox\" id=\"qoption\" name=\"qoption\" value=\"1\" "
 				. ((isset($data->qoption) && $data->qoption) ? "checked=\"checked\" " : '') . "/>";
-            helpbutton("questionoption", get_string("questionoption", "languagelesson"), "lesson");
+            helpbutton("questionoption", get_string("questionoption", "languagelesson"), "languagelesson");
             echo '</p>';
         }
     ?>
@@ -120,7 +120,7 @@
                     // answer 1 jumpto next page
                     choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
                 }
-                helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+                helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
                 if ($i) {
                     echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
 						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '0')."\" size=\"5\" />";
@@ -136,7 +136,7 @@
         case LL_ESSAY :
                 echo "<tr><td><b>".get_string("jump", "languagelesson").":</b> \n";
                 choose_from_menu($jump, "jumpto[0]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
-                helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+                helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 				echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
 					."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '1')."\" size=\"5\" />";
                 echo "</td></tr>\n";
@@ -154,7 +154,7 @@
                     
                     echo "<tr><td><b>".get_string("correctanswerjump", "languagelesson").":</b> \n";
                     choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
-                    helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+                    helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 					echo get_string("correctanswerscore", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
 						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '1')."\" size=\"5\" />";
                     echo "</td></tr>\n";
@@ -166,7 +166,7 @@
                     
                     echo "<tr><td><b>".get_string("wronganswerjump", "languagelesson").":</b> \n";
                     choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : 0), "");
-                    helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+                    helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 					echo get_string("wronganswerscore", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
 						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '0')."\" size=\"5\" />";
                     echo "</td></tr>\n";
@@ -201,7 +201,7 @@
                     // answer 1 jumpto next page
                     choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
                 }
-                helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+                helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
                 if ($i) {
 					echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
 						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '0')."\" size=\"5\" />";
@@ -246,7 +246,7 @@
 			
 			echo "<tr><td><b>".get_string("correctanswerjump", "languagelesson").":</b> \n";
 			choose_from_menu($jump, "correctanswerjump", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
-			helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+			helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 			echo "</td></tr>\n";
 
 			$i++;
@@ -258,7 +258,7 @@
 			
 			echo "<tr><td><b>".get_string("wronganswerjump", "languagelesson").":</b> \n";
 			choose_from_menu($jump, "wronganswerjump", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : 0), "");
-			helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
+			helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 			echo "</td></tr>\n";
 			break;
 
