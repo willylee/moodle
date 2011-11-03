@@ -512,12 +512,12 @@ For hardcore hex chart, see: http://www.december.com/html/spec/colorhex.html
 	background-color:orange;
 }
 
-.mod-languagelesson .graded {
-	background-color:DeepSkyBlue;
-}
-
 .mod-languagelesson .commented {
 	background-color:yellow;
+}
+
+.mod-languagelesson .viewed {
+	background-color:LightBlue;
 }
 
 .mod-languagelesson .resubmit {

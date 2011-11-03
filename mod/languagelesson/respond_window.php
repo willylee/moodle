@@ -20,6 +20,23 @@ require_once('lib.php');
 	if (! $manualattempt = get_record('languagelesson_manattempts', 'id', $attempt->manattemptid)) {
 		error('Could not retrieve manual attempt record.');
 	}
+
+// make note of whether we need to flag this attempt as viewed or not
+	$needsflag = optional_param('needsflag', 0, PARAM_INT);
+
+// if we do, then flag this attempt as viewed and deflag the resubmit and refresh the opener page
+	if ($needsflag) {
+		$uma = new stdClass;
+		$uma->id = $manualattempt->id;
+		$uma->viewed = 1;
+		$uma->resubmit = 0;
+		if (!update_record('languagelesson_manattempts', $uma)) {
+			error('Could not flag this attempt as viewed!');
+		}
+		echo '<script type="text/javascript">window.opener.location.reload();</script>';
+	}
+
+
 	
 //////////////////////////////////////////////////////////////////////////////
 /// if 'submitting' is set, then the form was just submitted here, so save ///

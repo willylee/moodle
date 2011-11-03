@@ -379,6 +379,10 @@
 			if ($course->showgrades) {
 				$a->grade = $grade->grade;
 				echo '<p>'.get_string('oldgradethisisyourgrade', 'languagelesson', $a).'</p>';
+
+				if (count_records('languagelesson_manattempts', 'lessonid', $lesson->id, 'userid', $USER->id, 'graded', 0)) {
+					echo '<p>'.get_string('oldgradehasungraded', 'languagelesson').'</p>';
+				}
 			}
 			
 			if ($lesson->type == LL_TYPE_ASSIGNMENT) {

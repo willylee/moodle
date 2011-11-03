@@ -35,7 +35,7 @@ if ($savegradesflag) {
 		
 		/// if this lesson already has a grade saved for this user, update it
 		if ($oldgrade = get_record("languagelesson_grades", "lessonid", $lesson->id,
-								   "userid", $stugrades[$i])) {
+								   "userid", $ID)) {
 			$grade->id = $oldgrade->id;
 			if (!$update = update_record("languagelesson_grades", $grade)) {
 				error("Grader: Manual grade not updated");
@@ -47,6 +47,12 @@ if ($savegradesflag) {
 				error("Grader: Manual grade not inserted");
 			}
 		}
+
+		// also, mark all manual attempts for this lessonID, userID pair as graded
+		execute_sql("UPDATE {$CFG->prefix}languagelesson_manattempts
+					SET graded = 1
+					WHERE lessonid = $lesson->id
+					AND userid = $ID");
 	}
 	
 	languagelesson_update_grades($lesson);

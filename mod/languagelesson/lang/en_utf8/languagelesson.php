@@ -288,6 +288,7 @@ $string['graderautocorrect'] = 'autocorrect';
 $string['graderautowrong'] = 'autowrong';
 $string['gradernone'] = 'no_submission';
 $string['gradernew'] = 'new';
+$string['graderviewed'] = 'viewed';
 $string['gradergraded'] = 'graded';
 $string['gradercommented'] = 'commented';
 $string['graderresubmit'] = 'resubmit';
@@ -297,8 +298,8 @@ $string['legendautocorrect'] = 'Correct';
 $string['legendautowrong'] = 'Incorrect';
 $string['legendnone'] = 'Unattempted question';
 $string['legendnew'] = 'New entry';
-$string['legendgraded'] = 'Graded entry';
-$string['legendcommented'] = 'Comments entry';
+$string['legendviewed'] = 'Viewed entry';
+$string['legendcommented'] = 'Commented entry';
 $string['legendresubmit'] = 'Corrected entry';
 
 ///cell contents by type for grader
@@ -363,6 +364,8 @@ $string['shuffleanswers'] = 'Shuffle answers';
 
 $string['oldgradeheader'] = 'You have already completed this Language Lesson';
 $string['oldgradethisisyourgrade'] = 'Your current grade on this language lesson is $a->grade%%.';
+$string['oldgradehasungraded'] = 'One or more of your submissions on this language lesson has not yet been graded. The above grade may
+or may not reflect your final grade.';
 $string['oldgradeassignmentmessage'] = 'If you would like to change your answers, please click the \'Enter lesson\' button below.';
 $string['oldgradeassignmentbutton'] = 'Enter lesson';
 $string['oldgradetestmessage'] = 'You are not allowed to change any of your answers, but if you would like to review them, please click the \'Review\' button below.';

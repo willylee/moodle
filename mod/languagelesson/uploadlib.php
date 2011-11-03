@@ -85,8 +85,9 @@ function upload() {
 		$manattempt->timeseen = time();
 
 		// mark as resubmission if necessary
-		if (!$firstAttempt && $manattempt->graded) {
+		if (!$firstAttempt && ($manattempt->viewed || $manattempt->graded)) {
 			$manattempt->resubmit = 1;
+			$manattempt->viewed = 0;
 			$manattempt->graded = 0;
 		}
 			

@@ -130,6 +130,7 @@
 				}
 				if ($oldManAttempt->graded && !$lesson->autograde) {
 					$manualattempt->resubmit = 1;
+					$manualattempt->viewed = 0;
 					$manualattempt->graded = 0;
 				}
 			}

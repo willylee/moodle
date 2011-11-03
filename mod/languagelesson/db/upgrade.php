@@ -327,6 +327,20 @@ function xmldb_languagelesson_upgrade($oldversion=0) {
 		}
 	}
 
+	
+	// add the "viewed" flag to manattempts table for more userful Grader page interface
+	if ($result && $oldversion < 2011102601) {
+		$table = new XMLDBTable('languagelesson_manattempts');
+		$field = new XMLDBField('viewed');
+		$field->setAttributes(XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, 0, 'attemptid');
+
+		$result = add_field($table, $field);
+
+		if ($result) {
+			$result = execute_sql("UPDATE {$CFG->prefix}languagelesson_manattempts SET viewed = 1 WHERE graded = 1");
+		}
+	}
+
 
 	return $result;
 }

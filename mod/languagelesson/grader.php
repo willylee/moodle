@@ -178,13 +178,16 @@
 	</script>
 	
 	<input type="checkbox" id="alwaysshowqnamebox" checked="checked" />
-	<label class="noselect" unselectable="on" for='alwaysshowqnamebox' onclick="toggle('alwaysshowqnamebox');"><?php echo get_string('legendshowquestionnamebox', 'languagelesson'); ?></label>
+	<label class="noselect" unselectable="on" for='alwaysshowqnamebox' onclick="toggle('alwaysshowqnamebox');"><?php echo
+		get_string('legendshowquestionnamebox', 'languagelesson'); ?></label>
 	
 	<input type="checkbox" id="toggleallstudentsbox" onclick="select_all_students(this);" />
-	<label class="noselect" unselectable="on" for='toggleallstudentsbox' onclick="toggle('toggleallstudentsbox');"><?php echo get_string('legendselectallstudentsbox', 'languagelesson'); ?></label>
+	<label class="noselect" unselectable="on" for='toggleallstudentsbox' onclick="toggle('toggleallstudentsbox');"><?php echo
+		get_string('legendselectallstudentsbox', 'languagelesson'); ?></label>
 	
 	<input type="checkbox" id="useHTMLbox" name="useHTML" checked="checked" />
-	<label class="noselect" unselectable="on" for='useHTMLbox' onclick="toggle('useHTMLbox');"><?php echo get_string('legenduseHTMLbox', 'languagelesson'); ?></label>
+	<label class="noselect" unselectable="on" for='useHTMLbox' onclick="toggle('useHTMLbox');"><?php echo
+		get_string('legenduseHTMLbox', 'languagelesson'); ?></label>
 	
 	
 	<?php
@@ -451,17 +454,16 @@ function print_row($attempts, $pages)
 			
 		/// set $onclick to call the grading window
 			$onclick = "window.open('{$CFG->wwwroot}/mod/languagelesson/"
-					   . "respond_window.php?attemptid={$attempt->id}&cmid={$cm->id}'"
+					   . "respond_window.php?attemptid={$attempt->id}&cmid={$cm->id}"
+					   . ((! $manattempt->viewed) ? '&needsflag=1' : '') . "'"
 					   . ",'Grading Language Lesson','width=950,height=800,toolbar=no,scrollbars=1');";
 			
 			if ($manattempt->resubmit) {
 				$class = get_class_str('resubmit');
-			} else if ($manattempt->graded) {
-				if ($feedbacks = get_records('languagelesson_feedback', 'manattemptid', $manattempt->id)) {
-					$class = get_class_str('commented');
-				} else {
-					$class = get_class_str('graded');
-				}
+			} else if ($manattempt->graded && $feedbacks = get_records('languagelesson_feedback', 'manattemptid', $manattempt->id)) {
+				$class = get_class_str('commented');
+			} else if ($manattempt->viewed) {
+				$class = get_class_str('viewed');
 			} else {
 				$class = get_class_str('new');
 			}
@@ -576,19 +578,12 @@ function print_legend() {
 					
 					<td class=\"legend leg_color_cell " . get_class_str('autowrong') . "\" />
 					<td class=\"legend leg_name_cell\">" . get_string('legendautowrong', 'languagelesson') . "</td>
-					".
-					/*<td class=\"legend leg_color_cell " . get_class_str('essaynew') . "\" />
-					<td class=\"legend leg_name_cell\">" . get_string('legendessaynew', 'languagelesson') . "</td>
-					
-					<td class=\"legend leg_color_cell " . get_class_str('essaygraded') . "\" />
-					<td class=\"legend leg_name_cell\">" . get_string('legendessaygraded', 'languagelesson') . "</td>
-					*/
-					"
+
 					<td class=\"legend leg_color_cell " . get_class_str('new') . "\" />
 					<td class=\"legend leg_name_cell\">" . get_string('legendnew', 'languagelesson') . "</td>
 					
-					<td class=\"legend leg_color_cell " . get_class_str('graded') . "\" />
-					<td class=\"legend leg_name_cell\">" . get_string('legendgraded', 'languagelesson') . "</td>
+					<td class=\"legend leg_color_cell " . get_class_str('viewed') . "\" />
+					<td class=\"legend leg_name_cell\">" . get_string('legendviewed', 'languagelesson') . "</td>
 					
 					<td class=\"legend leg_color_cell " . get_class_str('commented') . "\" />
 					<td class=\"legend leg_name_cell\">" . get_string('legendcommented', 'languagelesson') . "</td>
