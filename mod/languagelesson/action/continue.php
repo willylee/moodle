@@ -150,6 +150,7 @@
 				$correctanswer = true;
 			  /// flag it as graded
 				$manualattempt->graded = 1;
+				$manualattempt->viewed = 1;
 			  /// set the grade to the maximum point value for this question
 				$maxscore = get_record('languagelesson_answers','id',$answerid);
 				$maxscore = $maxscore->score;

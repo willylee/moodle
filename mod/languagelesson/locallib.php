@@ -2147,10 +2147,10 @@ function languagelesson_print_menu_block($cmid, $lesson) {
         
       /// initialize the default (base) texts used for printing selected or not selected
       /// page links in the left menu
-        $selected = '<li class="selected"><span %s>%s</span> %s</li>';
+        $selected = '<li class="selected"><span %s>%s</span> %s %s</li>';
         $notselected = "<li class=\"notselected\"><a href=\"$CFG->wwwroot/mod/"
         				  . "languagelesson/view.php?id=$cmid&amp;pageid=%d\""
-        				  . "class=\"%s\" %s >%s</a>%s</li>\n";
+        				  . "class=\"%s\" %s >%s</a>%s %s</li>\n";
       /// initialize the base style declaration used in setting indent values
         $indent_style = 'style="margin-left:%dpx;"';
         
@@ -2243,6 +2243,8 @@ function languagelesson_print_menu_block($cmid, $lesson) {
                 		if ($print) {
 							if ($state = languagelesson_get_autograde_state($lesson->id, $page->id, $USER->id)) {
 								if ($lesson->contextcolors) {
+									// reset the optional second image string
+									$img2 = '';
 									if ($state == 'correct') {
 										$class = 'leftmenu_autograde_correct';
 										$img = "<img src=\"{$CFG->wwwroot}".get_string('iconsrccorrect', 'languagelesson')."\"
@@ -2254,8 +2256,14 @@ function languagelesson_print_menu_block($cmid, $lesson) {
 									} else {
 										//it's manually-graded
 										$class = 'leftmenu_manualgrade';
-										$img = "<img src=\"{$CFG->wwwroot}".get_string('iconsrcmanual', 'languagelesson')."\"
+										$src = get_string('iconsrcmanual', 'languagelesson');
+										$fbsrc = get_string('iconsrcfeedback', 'languagelesson');
+										$img = "<img src=\"{$CFG->wwwroot}$src\"
 											width=\"10\" height=\"10\" alt=\"manually-graded\" />";
+										if ($state == 'feedback') {
+											$img2 = "<img src=\"{$CFG->wwwroot}$fbsrc\"
+												width=\"15\" height=\"15\" alt=\"manually-graded\" />";
+										}
 									}
 								} else {
 									$class = 'leftmenu_attempted';
@@ -2269,10 +2277,10 @@ function languagelesson_print_menu_block($cmid, $lesson) {
 						/// print the link based on if it is the current page or not
 							if ($page->id == $currentpageid) { 
 								$content .= sprintf($selected, sprintf($indent_style, $indent*$indent_pixels),
-									format_string($page->title,true), $img);
+									format_string($page->title,true), $img, ((!empty($img2)) ? $img2 : ''));
 							} else {
 								$content .= sprintf($notselected, $page->id, $class, sprintf($indent_style, $indent*$indent_pixels),
-									format_string($page->title,true), $img);
+									format_string($page->title,true), $img, ((!empty($img2)) ? $img2 : ''));
 							}
 						}
 						break;
@@ -2728,7 +2736,11 @@ function languagelesson_get_autograde_state($lessonid, $pageid, $userid, $retry=
 	$result = get_record_select('languagelesson_attempts', "lessonid=$lessonid and pageid=$pageid and userid=$userid and iscurrent=1");
 	if ($result) {
 		if ($result->manattemptid !== null) {
-			return 'manual';
+			if (count_records('languagelesson_feedback', 'manattemptid', $result->manattemptid)) {
+				return 'feedback';
+			} else {
+				return 'manual';
+			}
 		} else if ($result->correct) {
 			return 'correct';
 		} else {

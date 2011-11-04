@@ -417,6 +417,7 @@ $string['waitingforfeedback'] = 'Your submission will be graded later.';
 $string['iconsrccorrect'] = '/pix/i/tick_green_big.gif';
 $string['iconsrcwrong'] = '/pix/i/cross_red_big.gif';
 $string['iconsrcmanual'] = '/mod/languagelesson/icons/speaker.jpg';
+$string['iconsrcfeedback'] = '/mod/languagelesson/icons/fb_balloon.jpg';
 
 $string['feedbacktextframe'] = '$a->fullname said:<br />$a->text';
 

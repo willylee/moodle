@@ -95,6 +95,7 @@ function upload() {
 		if ($lesson->autograde) {
 		  	// flag it as graded
 			$manattempt->graded = 1;
+			$manattempt->viewed = 1;
 		  	// set the grade to the maximum point value for this question
 			$maxscore = get_field('languagelesson_answers', 'score', 'id', $attempt->answerid);
 			$uattempt->score = $maxscore;
