@@ -812,30 +812,13 @@
 		/// and update the languagelesson's grade
 		/// NOTE that this happens no matter the question type
 			if ($lesson->type != LL_TYPE_PRACTICE) {
-			/// get the lesson's graded information
+				// get the lesson's graded information
 				$gradeinfo = languagelesson_grade($lesson);
+
+				// save the grade
+				languagelesson_save_grade($lesson->id, $USER->id, $gradeinfo->grade);
 				
-			/// build the grade object
-				$grade->lessonid = $lesson->id;
-				$grade->userid = $USER->id;
-				$grade->grade = $gradeinfo->grade;
-				
-			/// and update the old grade record, if there is one; if not, insert the record
-				if ($oldgrade = get_record("languagelesson_grades", "lessonid", $lesson->id,
-										   "userid", $USER->id)) {
-					/// if the old grade was for a completed lesson attempt, update the completion time
-					if ($oldgrade->completed) { $grade->completed = time(); }
-					$grade->id = $oldgrade->id;
-					if (!$update = update_record("languagelesson_grades", $grade)) {
-						error("Navigation: grade not updated");
-					}
-				} else {
-					if (!$newgradeid = insert_record("languagelesson_grades", $grade)) {
-						error("Navigation: grade not inserted");
-					}
-				}
-				
-			/// finally, update the records in the gradebook
+				// finally, update the records in the gradebook
 				languagelesson_update_grades($lesson, $USER->id);
 			}
 			

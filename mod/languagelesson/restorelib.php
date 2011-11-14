@@ -63,24 +63,33 @@
             $lesson->course = $restore->course_id;
             $lesson->name = backup_todb($info['MOD']['#']['NAME']['0']['#']);
             $lesson->type = backup_todb($info['MOD']['#']['TYPE']['0']['#']);
-            $lesson->dependency = isset($info['MOD']['#']['DEPENDENCY']['0']['#'])?backup_todb($info['MOD']['#']['DEPENDENCY']['0']['#']):'';
-            $lesson->conditions = isset($info['MOD']['#']['CONDITIONS']['0']['#'])?backup_todb($info['MOD']['#']['CONDITIONS']['0']['#']):'';
+            $lesson->dependency = backup_todb($info['MOD']['#']['DEPENDENCY']['0']['#']);
+            $lesson->conditions = backup_todb($info['MOD']['#']['CONDITIONS']['0']['#']);
             $lesson->grade = backup_todb($info['MOD']['#']['GRADE']['0']['#']);
             $lesson->showongoingscore = backup_todb($info['MOD']['#']['SHOWONGOINGSCORE']['0']['#']);
+            $lesson->showoldanswer = backup_todb($info['MOD']['#']['SHOWOLDANSWER']['0']['#']);
             $lesson->maxattempts = backup_todb($info['MOD']['#']['MAXATTEMPTS']['0']['#']);
-            $lesson->defaultfeedback = isset($info['MOD']['#']['DEFAULTFEEDBACK']['0']['#'])?backup_todb($info['MOD']['#']['DEFAULTFEEDBACK']['0']['#']):'';
+            $lesson->penalty = backup_todb($info['MOD']['#']['PENALTY']['0']['#']);
+            $lesson->penaltytype = backup_todb($info['MOD']['#']['PENALTYTYPE']['0']['#']);
+            $lesson->penaltyvalue = backup_todb($info['MOD']['#']['PENALTYVALUE']['0']['#']);
             $lesson->autograde = backup_todb($info['MOD']['#']['AUTOGRADE']['0']['#']);
+            $lesson->shuffleanswers = backup_todb($info['MOD']['#']['SHUFFLEANSWERS']['0']['#']);
+            $lesson->defaultfeedback = backup_todb($info['MOD']['#']['DEFAULTFEEDBACK']['0']['#']);
+            $lesson->defaultcorrect = isset($info['MOD']['#']['DEFAULTCORRECT']['0']['#'])
+										? backup_todb($info['MOD']['#']['DEFAULTCORRECT']['0']['#'])
+										: null;
+            $lesson->defaultwrong = isset($info['MOD']['#']['DEFAULTWRONG']['0']['#'])
+										? backup_todb($info['MOD']['#']['DEFAULTWRONG']['0']['#'])
+										: null;
             $lesson->timed = backup_todb($info['MOD']['#']['TIMED']['0']['#']);
             $lesson->maxtime = backup_todb($info['MOD']['#']['MAXTIME']['0']['#']);
-            $lesson->activitylink = isset($info['MOD']['#']['ACTIVITYLINK']['0']['#'])?backup_todb($info['MOD']['#']['ACTIVITYLINK']['0']['#']):'';
-            $lesson->mediafile = isset($info['MOD']['#']['MEDIAFILE']['0']['#'])?backup_todb($info['MOD']['#']['MEDIAFILE']['0']['#']):'';
-            $lesson->mediaheight = isset($info['MOD']['#']['MEDIAHEIGHT']['0']['#'])?backup_todb($info['MOD']['#']['MEDIAHEIGHT']['0']['#']):'';
-            $lesson->mediawidth = isset($info['MOD']['#']['MEDIAWIDTH']['0']['#'])?backup_todb($info['MOD']['#']['MEDIAWIDTH']['0']['#']):'';
-            $lesson->displayleft = isset($info['MOD']['#']['DISPLAYLEFT']['0']['#'])?backup_todb($info['MOD']['#']['DISPLAYLEFT']['0']['#']):'';
-            $lesson->
-            
-            contextcolors = isset($info['MOD']['#']['CONTEXTCOLORS']['0']['#'])?backup_todb($info['MOD']['#']['CONTEXTCOLORS']['0']['#']):'';
-            $lesson->progressbar = isset($info['MOD']['#']['PROGRESSBAR']['0']['#'])?backup_todb($info['MOD']['#']['PROGRESSBAR']['0']['#']):'';
+            $lesson->activitylink = backup_todb($info['MOD']['#']['ACTIVITYLINK']['0']['#']);
+            $lesson->mediafile = backup_todb($info['MOD']['#']['MEDIAFILE']['0']['#']);
+            $lesson->mediaheight = backup_todb($info['MOD']['#']['MEDIAHEIGHT']['0']['#']);
+            $lesson->mediawidth = backup_todb($info['MOD']['#']['MEDIAWIDTH']['0']['#']);
+            $lesson->displayleft = backup_todb($info['MOD']['#']['DISPLAYLEFT']['0']['#']);
+            $lesson->contextcolors = backup_todb($info['MOD']['#']['CONTEXTCOLORS']['0']['#']);
+            $lesson->progressbar = backup_todb($info['MOD']['#']['PROGRESSBAR']['0']['#']);
             $lesson->available = backup_todb($info['MOD']['#']['AVAILABLE']['0']['#']);
             $lesson->deadline = backup_todb($info['MOD']['#']['DEADLINE']['0']['#']);
             $lesson->timemodified = backup_todb($info['MOD']['#']['TIMEMODIFIED']['0']['#']);
@@ -151,6 +160,7 @@
             //Now, build the lesson_pages record structure
             $page->lessonid = $newlessonid;
             $page->prevpageid = $prevpageid;
+			$page->ordering = backup_todb($page_info['#']['ORDERING']['0']['#']);
             $page->qtype = backup_todb($page_info['#']['QTYPE']['0']['#']);
             $page->qoption = backup_todb($page_info['#']['QOPTION']['0']['#']);
             $page->layout = backup_todb($page_info['#']['LAYOUT']['0']['#']);
@@ -185,7 +195,8 @@
                 //We have the newid, update backup_ids (restore logs will use it!!)
                 backup_putid($restore->backup_unique_code,"languagelesson_pages", $oldid, $newid);
                 //We have to restore the lesson_answers table now (a page level table)
-                $status = languagelesson_answers_restore($oldlessonid,$newlessonid,$oldid,$newid,$page_info,$page->qtype,$restore,$userdata);
+				$status =
+					languagelesson_answers_restore($oldlessonid,$newlessonid,$oldid,$newid,$page_info,$page->qtype,$restore,$userdata);
                 
                 //Need to update useranswer field (which has answer id's in it)
                 //for matching and multi-answer multi-choice questions
@@ -254,23 +265,6 @@
 
         //Get the lesson_answers array (optional)
         if (isset($info['#']['ANSWERS']['0']['#']['ANSWER'])) {
-            // The following chunk of code is a fix for matching questions made
-            // pre moodle 1.5.  Matching questions need two answer fields designated
-            // for correct and wrong responses before the rest of the answer fields.
-            if ($restore->backup_version <= 2004083124) {  // Backup version for 1.4.5+
-                if ($ismatching = get_record('languagelesson_pages', 'id', $newpageid)) {  // get the page we just inserted
-                    if ($ismatching->qtype == 5) { // check to make sure it is a matching question
-                        $time = time();  // this may need to be changed
-                        // make our 2 response answers
-                        $newanswer->lessonid = $newlessonid;
-                        $newanswer->pageid = $newpageid;
-                        $newanswer->timecreated = $time;
-                        $newanswer->timemodified = 0;
-                        insert_record('languagelesson_answers', $newanswer);
-                        insert_record('languagelesson_answers', $newanswer);
-                    }
-                }
-            }
 
             $answers = $info['#']['ANSWERS']['0']['#']['ANSWER'];
 
@@ -289,7 +283,6 @@
                 $answer->pageid = $newpageid;
                 // the absolute jumps will need fixing later
                 $answer->jumpto = backup_todb($answer_info['#']['JUMPTO']['0']['#']);
-                $answer->grade = backup_todb($answer_info['#']['GRADE']['0']['#']);
                 $answer->score = backup_todb($answer_info['#']['SCORE']['0']['#']);
                 $answer->flags = backup_todb($answer_info['#']['FLAGS']['0']['#']);
                 $answer->timecreated = backup_todb($answer_info['#']['TIMECREATED']['0']['#']);
@@ -318,7 +311,7 @@
 
                     if ($userdata) {
                         //We have to restore the lesson_attempts table now (a answers level table)
-                        $status = languagelesson_attempts_restore($oldlessonid, $newlessonid, $oldpageid, $newpageid, $newid, $answer_info, $qtype, $restore, $userdata);
+                        $status = languagelesson_attempts_restore($oldlessonid, $newlessonid, $oldpageid, $newpageid, $newid, $answer_info, $qtype, $restore);
                     }
                 } else {
                     $status = false;
@@ -330,7 +323,7 @@
 
 
     //This function restores the attempts
-    function languagelesson_attempts_restore($oldlessonid, $newlessonid, $oldpageid, $newpageid, $answerid, $info, $qtype, $restore, $userdata=false) {
+    function languagelesson_attempts_restore($oldlessonid, $newlessonid, $oldpageid, $newpageid, $answerid, $info, $qtype, $restore) {
 
         global $CFG;
 
@@ -355,8 +348,12 @@
                 $attempt->answerid = $answerid;
                 $attempt->userid = backup_todb($attempt_info['#']['USERID']['0']['#']);
                 $attempt->retry = backup_todb($attempt_info['#']['RETRY']['0']['#']);
+				$attempt->iscurrent = backuptodb($attempt_info['#']['ISCURRENT']['0']['#']);
                 $attempt->correct = backup_todb($attempt_info['#']['CORRECT']['0']['#']);
-                $attempt->useranswer = backup_todb($attempt_info['#']['USERANSWER']['0']['#']);
+                $attempt->score = backup_todb($attempt_info['#']['SCORE']['0']['#']);
+                $attempt->useranswer = (isset($attempt_info['#']['USERANSWER']['0']['#']))
+										? backup_todb($attempt_info['#']['USERANSWER']['0']['#'])
+										: null;
                 $attempt->timeseen = backup_todb($attempt_info['#']['TIMESEEN']['0']['#']);
 
                 //We have to recode the userid field
@@ -365,11 +362,14 @@
                     $attempt->userid = $user->new_id;
                 }
 
+				//Re-insert the corresponding manual attempts, if any
+				$status = languagelesson_manattempts_restore($newlessonid, $newpageid, $qtype, $attempt->userid, $attempt_info, $restore);
+
                 //The structure is equal to the db, so insert the lesson_attempt
                 $newid = insert_record("languagelesson_attempts",$attempt);
 
 				//If we're backing up userdata and the question page being restored is an audio or video type, restore its submitted files
-				if ($userdata && ($qtype == 11 || $qtype == 12)) {
+				if ($qtype == 11 || $qtype == 12) {
 					languagelesson_restore_files($oldlessonid, $newlessonid, $oldpageid, $newpageid, $olduserid, $attempt->userid, $restore);
 				}
 
@@ -388,6 +388,80 @@
 
     return $status;
     }
+
+	
+	
+	function languagelesson_manattempts_restore($newlessonid, $newpageid, $qtype, $newuserid, $attemptinfo, $restore) {
+		
+		global $CFG;
+
+		$status = true;
+		
+        //Get the manattempts array (optional)
+        if (isset($info['#']['MANATTEMPT']['0'])) {
+            $manattempt_info = $attemptinfo['#']['MANATTEMPT']['0'];
+
+			$manattempt = new stdClass;
+			$manattempt->lessonid = $newlessonid;
+			$manattempt->pageid = $newpageid;
+			$manattempt->userid = $newuserid;
+			$manattempt->viewed = backup_todb($manattempt_info['#']['VIEWED']['0']['#']);
+			$manattempt->graded = backup_todb($manattempt_info['#']['GRADED']['0']['#']);
+			$manattempt->type = $qtype;
+			$manattempt->essay = backup_todb($manattempt_info['#']['ESSAY']['0']['#']);
+			$manattempt->fname = backup_todb($manattempt_info['#']['FNAME']['0']['#']);
+			$manattempt->resubmit = backup_todb($manattempt_info['#']['RESUBMIT']['0']['#']);
+			$manattempt->timeseen = backup_todb($manattempt_info['#']['TIMESEEN']['0']['#']);
+
+			//This structure is now equal to the db, so insert the lesson_attempt
+			$newid = insert_record("languagelesson_attempts",$attempt);
+
+			//Now restore any feedback records corresponding to this manattempt
+			$status = languagelesson_feedbacks_restore($newlessonid, $newpageid, $newuserid, $newid, $manattempt_info, $restore);
+		}
+
+		return $status;
+
+	}
+
+
+	
+	function languagelesson_feedbacks_restore($newlessonid, $newpageid, $qtype, $newuserid, $manattemptid, $manattempt_info, $restore) {
+		
+		global $CFG;
+
+		$status = true;
+
+		//Get the optional feedbacks array
+		if (isset($info['#']['FEEDBACKS']['0']['#']['FEEDBACK'])) {
+			$feedbacks = $manattempt_info['#']['FEEDBACKS']['0']['#']['FEEDBACK'];
+            for($i = 0; $i < sizeof($feedbacks); $i++) {
+				$feedback_info = $feedbacks[$i];
+
+				$oldteacherid = backup_todb($feedback_info['#']['TEACHERID']['0']['#']);
+
+				$feedback = new stdClass;
+				$feedback->lessonid = $newlessonid;
+				$feedback->pageid = $newpageid;
+				$feedback->userid = $newuserid;
+				$feedback->manattemptid = $manattemptid;
+				$feedback->teacherid = backup_todb($feedback_info['#']['TEACHERID']['0']['#']);
+				$feedback->fname = backup_todb($feedback_info['#']['FNAME']['0']['#']);
+				$feedback->text = backup_todb($feedback_info['#']['TEXT']['0']['#']);
+				$feedback->timeseen = backup_todb($feedback_info['#']['TIMESEEN']['0']['#']);
+
+                //We have to recode the teacherid field
+                $teacher = backup_getid($restore->backup_unique_code,"user",$oldteacherid);
+                if ($teacher) {
+                    $feedback->teacherid = $teacher->new_id;
+                }
+
+			}
+		}
+
+		return $status;
+	}
+
     
 
 

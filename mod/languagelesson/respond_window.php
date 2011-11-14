@@ -117,6 +117,10 @@ require_once('lib.php');
 				error('Could not save the score for this attempt!');
 			}
 		}
+
+		$grade = languagelesson_grade($lesson, $attempt->userid);
+		languagelesson_save_grade($lesson->id, $attempt->userid, $grade->grade);
+		languagelesson_update_grades($lesson, $attempt->userid);
 	// /handle the assigned score
 	////////////////////////////////
 		
@@ -277,10 +281,15 @@ require_once('lib.php');
 			$maxscore = get_record('languagelesson_answers', 'id', $attempt->answerid);
 			$maxscore = (float)$maxscore->score;
 			echo '(0-'.$maxscore.')';
+			
+			// pull the score previously assigned to this, if there was one
+			if (get_field('languagelesson_manattempts', 'graded', 'id', $attempt->manattemptid)) {
+				$thisscore = get_field('languagelesson_attempts', 'score', 'id', $attempt->id);
+			}
 		?>
 		</label>
-		<input id="grade_input" name="grade" type="text" value="<?php echo $maxscore; ?>" onblur="update_grade(this, <?php echo
-			$maxscore; ?>);" />
+		<input id="grade_input" name="grade" type="text" value="<?php echo ((isset($thisscore)) ? $thisscore : $maxscore); ?>"
+			onblur="update_grade(this, <?php echo $maxscore; ?>);" />
 		<input type="hidden" name="maxgrade" value="<?php echo $maxscore; ?>" />
 	</div>
 

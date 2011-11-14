@@ -1675,14 +1675,11 @@ function languagelesson_grade($lesson, $userid = 0) {
 	/// handle grading only most recent attempts
 		if (!$lesson->penalty) {
 			foreach ($pageattempts as $pageattempt) {
+				// no matter what, we add in whatever they scored on it
+				$earnedpts += $pageattempt->score;
 				// if it's saved as correct, the type doesn't matter, so mark it
 				if ($pageattempt->correct) {
 					$ncorrect++;
-					$earnedpts += $pageattempt->score;
-				}
-				// if it's not, it's possible that it's a type allowing partially correct, so check that
-				else if ($pageattempt->qtype == LL_CLOZE) {
-					$earnedpts += $pageattempt->score;
 				}
 				// if it's not, though, it may be an ungraded manual, so check
 				else if ($pageattempt->qtype == LL_ESSAY ||
@@ -1691,7 +1688,7 @@ function languagelesson_grade($lesson, $userid = 0) {
 					$nmanual++;
 					
 					/// if we got here, this may be a non-autograded lesson;
-					/// if so, record the possible points for this qustion in manualpoints
+					/// if so, record the possible points for this question in manualpoints
 					if (!$lesson->autograde) {
 						$manualpoints += $answers[$pageattempt->answerid]->score;
 					}
@@ -1831,6 +1828,39 @@ function languagelesson_grade($lesson, $userid = 0) {
 
 
 
+/**
+ * Stores the SQL record of a student's grade on a lesson
+ *
+ * @param int $lessonid The ID of the lesson graded
+ * @param int $userid The ID of the student graded
+ * @param real $gradeval The grade the student received
+ */
+function languagelesson_save_grade($lessonid, $userid, $gradeval) {
+	// build the grade object
+	$grade = new stdClass;
+	$grade->lessonid = $lessonid;
+	$grade->userid = $userid;
+	$grade->grade = $gradeval;
+
+	// and update the old grade record, if there is one; if not, insert the record
+	if ($oldgrade = get_record("languagelesson_grades", "lessonid", $lessonid,
+							   "userid", $userid)) {
+		/// if the old grade was for a completed lesson attempt, update the completion time
+		if ($oldgrade->completed) { $grade->completed = time(); }
+		$grade->id = $oldgrade->id;
+		if (! update_record("languagelesson_grades", $grade)) {
+			error("Navigation: grade not updated");
+		}
+	} else {
+		if (! insert_record("languagelesson_grades", $grade)) {
+			error("Navigation: grade not inserted");
+		}
+	}
+}
+
+
+
+
 
 /**
  * Prints the ongoing message to the user.
@@ -1849,6 +1879,8 @@ function languagelesson_print_ongoing_score($lesson) {
         echo "<p align=\"center\">".get_string('teacherongoingwarning', 'languagelesson').'</p>';
     } else {
 		/// pull the current grade information for this lesson
+		// @TODO@
+		//   - since this score is calculated and saved after every question submission, shouldn't need to call this func again here
         $gradeinfo = languagelesson_grade($lesson);
         
 		/// build and print the score message
@@ -2173,10 +2205,10 @@ function languagelesson_print_menu_block($cmid, $lesson) {
                 		$inbranchtable = true;
                 		if ($page->id == $currentpageid) {
                 			$content .= sprintf($selected, sprintf($indent_style, 0*$indent_pixels), format_string($page->title,true),
-									'');
+									'', '');
                 		} else {
 							$content .= sprintf($notselected, $page->id, '', sprintf($indent_style, 0*$indent_pixels),
-									format_string($page->title, true), '');
+									format_string($page->title, true), '', '');
                 		}
                 		break;
                 	case LL_ENDOFBRANCH:
@@ -2218,11 +2250,11 @@ function languagelesson_print_menu_block($cmid, $lesson) {
                 				  /// if the branch header being checked is in the current branch,
                 				  /// print the header as selected
 									$content .= sprintf($selected, sprintf($indent_style, 1*$indent_pixels),
-											format_string($branchheader_title,true), '');
+											format_string($branchheader_title,true), '', '');
                 				} else {
                 				  /// otherwise, just print the header as not selected
 									$content .= sprintf($notselected, $page->id, '', sprintf($indent_style, 1*$indent_pixels),
-											format_string($branchheader_title,true), '');
+											format_string($branchheader_title,true), '', '');
                 				}
                 			}
                 			

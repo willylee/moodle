@@ -8,24 +8,24 @@
  **/
     //This is the "graphical" structure of the lesson mod: 
     //
-    //          lesson_default                  lesson ----------------------------|--------------------------|--------------------------|
+    //          languagelesson_default                  lesson ----------------------------|--------------------------|--------------------------|
     //     (UL, pk->id,fk->courseid)         (CL,pk->id)                           |                          |                          | 
     //                                             |                               |                          |                          |
-    //                                             |                         lesson_grades                                        lesson_timer
+    //                                             |                         languagelesson_grades                                        languagelesson_timer
     //                                             |                  (UL, pk->id,fk->lessonid)    (UL, pk->id,fk->lessonid)   (UL, pk->id,fk->lessonid)
     //                                             |
     //                                             |
-    //                                      lesson_pages---------------------------|
+    //                                      languagelesson_pages---------------------------|
     //                                  (CL,pk->id,fk->lessonid)                   |
     //                                             |                               |
     //                                             |                         languagelesson_seenbranches
     //                                             |                   (UL, pk->id,fk->pageid)
-    //                                       lesson_answers
+    //                                       languagelesson_answers
     //                                    (CL,pk->id,fk->pageid)
     //                                             |
     //                                             |
     //                                             |
-    //                                       lesson_attempts
+    //                                       languagelesson_attempts
     //                                  (UL,pk->id,fk->answerid)
     //
     // Meaning: pk->primary key field of the table
@@ -77,9 +77,16 @@
         fwrite ($bf,full_tag("CONDITIONS",4,false,$lesson->conditions));
         fwrite ($bf,full_tag("GRADE",4,false,$lesson->grade));
         fwrite ($bf,full_tag("SHOWONGOINGSCORE",4,false,$lesson->showongoingscore));
+		fwrite ($bf,full_tag("SHOWOLDANSWER",4,false,$lesson->showoldanswer));
         fwrite ($bf,full_tag("MAXATTEMPTS",4,false,$lesson->maxattempts));
-        fwrite ($bf,full_tag("DEFAULTFEEDBACK",4,false,$lesson->defaultfeedback));
+        fwrite ($bf,full_tag("PENALTY",4,false,$lesson->penalty));
+        fwrite ($bf,full_tag("PENALTYTYPE",4,false,$lesson->penaltytype));
+        fwrite ($bf,full_tag("PENALTYVALUE",4,false,$lesson->penaltyvalue));
         fwrite ($bf,full_tag("AUTOGRADE",4,false,$lesson->autograde));
+        fwrite ($bf,full_tag("SHUFFLEANSWERS",4,false,$lesson->shuffleanswers));
+        fwrite ($bf,full_tag("DEFAULTFEEDBACK",4,false,$lesson->defaultfeedback));
+        fwrite ($bf,full_tag("DEFAULTCORRECT",4,false,$lesson->defaultcorrect));
+        fwrite ($bf,full_tag("DEFAULTWRONG",4,false,$lesson->defaultwrong));
         fwrite ($bf,full_tag("TIMED",4,false,$lesson->timed));
         fwrite ($bf,full_tag("MAXTIME",4,false,$lesson->maxtime));
         fwrite ($bf,full_tag("ACTIVITYLINK",4,false,$lesson->activitylink));
@@ -122,7 +129,7 @@
         return $status;
     }
 
-    //Backup lesson_pages contents (executed from languagelesson_backup_mods)
+    //Backup languagelesson_pages contents (executed from languagelesson_backup_mods)
     function backup_languagelesson_pages ($bf, $preferences, $lessonid) {
 
         global $CFG;
@@ -139,6 +146,7 @@
                 $status =fwrite ($bf,start_tag("PAGE",5,true));
                 //Print page contents (prevpageid and nextpageid not needed)
                 fwrite ($bf,full_tag("PAGEID",6,false,$page->id)); // needed to fix (absolute) jumps
+                fwrite ($bf,full_tag("ORDERING",6,false,$page->ordering));
                 fwrite ($bf,full_tag("QTYPE",6,false,$page->qtype));
                 fwrite ($bf,full_tag("QOPTION",6,false,$page->qoption));
                 fwrite ($bf,full_tag("LAYOUT",6,false,$page->layout));
@@ -173,7 +181,7 @@
         return $status;
     }
 
-    //Backup lesson_answers contents (executed from backup_languagelesson_pages)
+    //Backup languagelesson_answers contents (executed from backup_languagelesson_pages)
     function backup_languagelesson_answers($bf,$preferences,$pageno) {
 
         global $CFG;
@@ -183,7 +191,7 @@
         // get the answers in a set order, the id order
         $lesson_answers = get_records("languagelesson_answers", "pageid", $pageno, "id");
 
-        //If there is lesson_answers
+        //If there is languagelesson_answers
         if ($lesson_answers) {
             //Write start tag
             $status =fwrite ($bf,start_tag("ANSWERS",6,true));
@@ -194,7 +202,6 @@
                 //Print answer contents
                 fwrite ($bf,full_tag("ID",8,false,$answer->id));
                 fwrite ($bf,full_tag("JUMPTO",8,false,$answer->jumpto));
-                fwrite ($bf,full_tag("GRADE",8,false,$answer->grade));
                 fwrite ($bf,full_tag("SCORE",8,false,$answer->score));
                 fwrite ($bf,full_tag("FLAGS",8,false,$answer->flags));
                 fwrite ($bf,full_tag("TIMECREATED",8,false,$answer->timecreated));
@@ -214,7 +221,7 @@
         return $status;
     }
 
-    //Backup lesson_attempts contents (executed from lesson_backup_answers)
+    //Backup languagelesson_attempts contents (executed from languagelesson_backup_answers)
     function backup_languagelesson_attempts ($bf,$preferences,$answerid) {
 
         global $CFG;
@@ -233,9 +240,16 @@
                 //Print attempt contents
                 fwrite ($bf,full_tag("USERID",10,false,$attempt->userid));       
                 fwrite ($bf,full_tag("RETRY",10,false,$attempt->retry));       
+                fwrite ($bf,full_tag("ISCURRENT",10,false,$attempt->iscurrent));       
                 fwrite ($bf,full_tag("CORRECT",10,false,$attempt->correct));     
+                fwrite ($bf,full_tag("SCORE",10,false,$attempt->score));     
                 fwrite ($bf,full_tag("USERANSWER",10,false,$attempt->useranswer));
+                fwrite ($bf,full_tag("MANATTEMPTID",10,false,$attempt->manattemptid));
                 fwrite ($bf,full_tag("TIMESEEN",10,false,$attempt->timeseen));       
+				//Backup the manualattempt, if there is one
+				if ($attempt->manattemptid) {
+					$status = backup_languagelesson_manattempt($bf,$preferences,$attempt->manattemptid);
+				}
                 //End attempt
                 $status =fwrite ($bf,end_tag("ATTEMPT",9,true));
             }
@@ -244,6 +258,66 @@
         }
         return $status;
     }
+	
+	//Backup a languagelesson_manattempts record (executed from languagelesson_backup_attempts)
+	function backup_languagelesson_manattempt($bf, $preferences, $manattemptid) {
+		
+		global $CFG;
+
+		$status = true;
+
+		$manattempt = get_record('languagelesson_manattempts', 'id', $manattemptid);
+		//If this function has been called, then there should be a record, and there will only ever be 1, because any attempt can only
+		//correspond to 1 manattempt
+
+		//Start the manattempt
+		$status =fwrite ($bf,start_tag("MANATTEMPT",11,true));
+		//Save manattempt contents
+		fwrite ($bf,full_tag("VIEWED",12,false,$manattempt->viewed));
+		fwrite ($bf,full_tag("GRADED",12,false,$manattempt->graded));
+		fwrite ($bf,full_tag("TYPE",12,false,$manattempt->type));
+		fwrite ($bf,full_tag("ESSAY",12,false,$manattempt->essay));
+		fwrite ($bf,full_tag("FNAME",12,false,$manattempt->fname));
+		fwrite ($bf,full_tag("RESUBMIT",12,false,$manattempt->resubmit));
+		fwrite ($bf,full_tag("TIMESEEN",12,false,$manattempt->timeseen));
+		//If there are feedbacks to save for this manattempt, save them
+		if (count_records('languagelesson_feedback', 'manattemptid', $manattempt->id)) {
+			$status = backup_languagelesson_feedback($bf, $preferences, $manattempt->id);
+		}
+		//End manattempt
+		$status =fwrite ($bf, end_tag("MANATTEMPT", 11, true));
+
+		return $status;
+	}
+
+	//Backup languagelesson_feedback records for a manual attempt (executed from backup_languagelesson_manattempt)
+	function backup_languagelesson_feedback($bf, $preferences, $manattemptid) {
+		
+		global $CFG;
+
+		$status = true;
+
+		$feedbacks = get_records('languagelesson_feedback', 'manattemptid', $manattemptid);
+		if ($feedbacks) {
+			//Write start tag for feedbacks
+			$status =fwrite ($bf, start_tag("FEEDBACKS",13,true));
+			foreach ($feedbacks as $feedback) {
+				//Start the feedback
+				$status =fwrite ($bf, start_tag("FEEDBACK",14,true));
+				//Save feedback contents
+				fwrite ($bf,full_tag("TEACHERID",15,false,$feedback->teacherid));
+				fwrite ($bf,full_tag("FNAME",15,false,$feedback->fname));
+				fwrite ($bf,full_tag("TEXT",15,false,$feedback->text));
+				fwrite ($bf,full_tag("TIMESEEN",15,false,$feedback->timeseen));
+				//End the feedback
+				$status =fwrite ($bf, end_tag("FEEDBACK",14,true));
+			}
+			//End feedbacks
+			$status =fwrite ($bf, end_tag("FEEDBACKS",13,true));
+		}
+
+		return $status;
+	}
     
 
 
@@ -288,7 +362,7 @@
         //Now copy the assignment dir
         if ($status) {
             //Only if it exists !! Thanks to Daniel Miksik.
-            if (is_dir($CFG->dataroot."/".$preferences->backup_course."/".$CFG->moddata."/assignment/".$instanceid)) {
+            if (is_dir($CFG->dataroot."/".$preferences->backup_course."/".$CFG->moddata."/languagelesson/".$instanceid)) {
                 $status = backup_copy_file($CFG->dataroot."/".$preferences->backup_course."/".$CFG->moddata."/languagelesson/".$instanceid,
                                            $CFG->dataroot."/temp/backup/".$preferences->backup_unique_code."/moddata/languagelesson/".$instanceid);
             }
@@ -302,7 +376,7 @@
 /*****************************************************************************************/
 
 
-   //Backup lesson_grades contents (executed from backup_lesson_mods)
+   //Backup languagelesson_grades contents (executed from backup_lesson_mods)
     function backup_languagelesson_grades ($bf,$preferences,$lessonid) {
 
         global $CFG;
@@ -365,7 +439,7 @@
         return $status;
     }
 
-   //Backup lesson_timer contents (executed from backup_lesson_mods)
+   //Backup languagelesson_timer contents (executed from backup_lesson_mods)
     function backup_languagelesson_timer ($bf,$preferences,$lessonid) {
 
         global $CFG;
@@ -397,7 +471,7 @@
         return $status;
     }
     
-    // backup lesson_default contents (executed from backup_lesson_mods)
+    // backup languagelesson_default contents (executed from backup_lesson_mods)
     function backup_languagelesson_default ($bf,$preferences) {
         global $CFG;
 
@@ -413,9 +487,16 @@
             fwrite ($bf,full_tag("CONDITIONS",5,false,$default->conditions));
             fwrite ($bf,full_tag("GRADE",5,false,$default->grade));
             fwrite ($bf,full_tag("SHOWONGOINGSCORE",5,false,$default->showongoingscore));
+			fwrite ($bf,full_tag("SHOWOLDANSWER",5,false,$lesson->showoldanswer));
             fwrite ($bf,full_tag("MAXATTEMPTS",5,false,$default->maxattempts));
+			fwrite ($bf,full_tag("PENALTY",5,false,$lesson->penalty));
+			fwrite ($bf,full_tag("PENALTYTYPE",5,false,$lesson->penaltytype));
+			fwrite ($bf,full_tag("PENALTYVALUE",5,false,$lesson->penaltyvalue));
             fwrite ($bf,full_tag("DEFAULTFEEDBACK",5,false,$default->defaultfeedback));
+			fwrite ($bf,full_tag("DEFAULTCORRECT",5,false,$lesson->defaultcorrect));
+			fwrite ($bf,full_tag("DEFAULTWRONG",5,false,$lesson->defaultwrong));
             fwrite ($bf,full_tag("AUTOGRADE",5,false,$default->autograde));
+			fwrite ($bf,full_tag("SHUFFLEANSWERS",5,false,$lesson->shuffleanswers));
             fwrite ($bf,full_tag("TIMED",5,false,$default->timed));
             fwrite ($bf,full_tag("MAXTIME",5,false,$default->maxtime));
             fwrite ($bf,full_tag("MEDIAHEIGHT",5,false,$default->mediaheight));
@@ -506,7 +587,7 @@
                                  WHERE l.course = '$course'");
     }
     
-    //Returns an array of lesson_submissions id
+    //Returns an array of languagelesson_submissions id
     function languagelesson_attempts_ids_by_course ($course) {
 
         global $CFG;
@@ -518,7 +599,7 @@
                                        a.lessonid = l.id");
     }
 
-    //Returns an array of lesson_submissions id
+    //Returns an array of languagelesson_submissions id
     function languagelesson_attempts_ids_by_instance ($instanceid) {
 
         global $CFG;

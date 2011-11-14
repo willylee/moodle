@@ -799,9 +799,6 @@
         if ($page->qtype == LL_BRANCHTABLE) {
             print_heading(format_string($page->title));
         } else {
-            $options = new stdClass;
-            $options->noclean = true;
-			
 		/// print out the instructions on how to complete the question directly above the question text
 			$textid = get_field('languagelesson_qtypes', 'textid', 'id', $page->qtype);
 			////////////////////////////////////////
@@ -819,14 +816,18 @@
 				get_string("{$textid}instructions", 'languagelesson').
 				'</div>';
 			
-		/// print the contents (the question prompt)
-		/// special case for LL_CLOZE: the prompt should display as containing the answer fields, so it's printed below
-			if ($page->qtype != LL_CLOZE) {
-				print_simple_box('<div class="contents">'.
-								format_text(stripslashes($page->contents), FORMAT_MOODLE, $options).
-								'</div>', 'center');
-			}
         }
+
+		$options = new stdClass;
+		$options->noclean = true;
+
+		// print the contents (the question prompt)
+		// special case for LL_CLOZE: the prompt should display as containing the answer fields, so it's printed below
+		if ($page->qtype != LL_CLOZE) {
+			print_simple_box('<div class="contents">'.
+							format_text(stripslashes($page->contents), FORMAT_MOODLE, $options).
+							'</div>', 'center');
+		}
         
 		
 	// </start printing lesson page> /////////////////////
