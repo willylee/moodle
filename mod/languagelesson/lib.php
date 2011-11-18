@@ -482,6 +482,7 @@ function languagelesson_grade_item_update($lesson, $grades=NULL) {
         $params = array('itemname'=>$lesson->name);
     }
 
+	if (! defined('LL_TYPE_PRACTICE')) { include('locallib.php'); }
     if ($lesson->grade > 0 && $lesson->type != LL_TYPE_PRACTICE) {
         $params['gradetype']  = GRADE_TYPE_VALUE;
         $params['grademax']   = $lesson->grade;

@@ -182,14 +182,14 @@
     }
 
     //Backup languagelesson_answers contents (executed from backup_languagelesson_pages)
-    function backup_languagelesson_answers($bf,$preferences,$pageno) {
+    function backup_languagelesson_answers($bf,$preferences,$pageid) {
 
         global $CFG;
 
         $status = true;
 
         // get the answers in a set order, the id order
-        $lesson_answers = get_records("languagelesson_answers", "pageid", $pageno, "id");
+        $lesson_answers = get_records("languagelesson_answers", "pageid", $pageid, "id");
 
         //If there is languagelesson_answers
         if ($lesson_answers) {
@@ -215,6 +215,19 @@
                 //End rubric
                 $status =fwrite ($bf,end_tag("ANSWER",7,true));
             }
+			//If we're saving userdata and there ARE answerid=0 attempts, then save an answer shell for incorrect short-answer attempts
+			//(id=0)
+			if (backup_userdata_selected($preferences,'languagelesson',$answer->lessonid)
+					&& count_records('languagelesson_attempts', 'answerid', 0, 'pageid', $pageid)) {
+				//start answer shell
+				$status = fwrite ($bf, start_tag("ANSWER", 7, true));
+				//save ID field only
+				fwrite ($bf, full_tag('ID', 8, false, 0));
+				//and backup the relevant attempts
+				$status = backup_languagelesson_attempts($bf, $preferences, 0, $pageid);
+				//now close the answer shell
+				$status = fwrite ($bf, end_tag("ANSWER", 7, true));
+			}
             //Write end tag
             $status =fwrite ($bf,end_tag("ANSWERS",6,true));
         }
@@ -222,13 +235,19 @@
     }
 
     //Backup languagelesson_attempts contents (executed from languagelesson_backup_answers)
-    function backup_languagelesson_attempts ($bf,$preferences,$answerid) {
+    function backup_languagelesson_attempts ($bf, $preferences, $answerid, $pageid=null) {
 
         global $CFG;
 
         $status = true;
 
-        $lesson_attempts = get_records("languagelesson_attempts","answerid", $answerid);
+		//if using a non-specific answerid (e.g. 0), we need to fetch based on pageid as well
+		if ($pageid != null) {
+			$lesson_attempts = get_records_select('languagelesson_attempts', "answerid=$answerid and pageid=$pageid");
+		} else {
+			$lesson_attempts = get_records("languagelesson_attempts","answerid", $answerid);
+		}
+
         //If there are attempts
         if ($lesson_attempts) {
             //Write start tag
@@ -243,7 +262,9 @@
                 fwrite ($bf,full_tag("ISCURRENT",10,false,$attempt->iscurrent));       
                 fwrite ($bf,full_tag("CORRECT",10,false,$attempt->correct));     
                 fwrite ($bf,full_tag("SCORE",10,false,$attempt->score));     
-                fwrite ($bf,full_tag("USERANSWER",10,false,$attempt->useranswer));
+                if (!fwrite ($bf,full_tag("USERANSWER",10,false,$attempt->useranswer))) {
+					error_log("FAILED to backup useranswer: $attempt->useranswer");
+				}
                 fwrite ($bf,full_tag("MANATTEMPTID",10,false,$attempt->manattemptid));
                 fwrite ($bf,full_tag("TIMESEEN",10,false,$attempt->timeseen));       
 				//Backup the manualattempt, if there is one
@@ -269,6 +290,8 @@
 		$manattempt = get_record('languagelesson_manattempts', 'id', $manattemptid);
 		//If this function has been called, then there should be a record, and there will only ever be 1, because any attempt can only
 		//correspond to 1 manattempt
+
+		error_log("writing manattempt");
 
 		//Start the manattempt
 		$status =fwrite ($bf,start_tag("MANATTEMPT",11,true));
@@ -408,14 +431,14 @@
     }
 
     //Backup languagelesson_seenbranches contents (executed from backup_languagelesson_pages)
-    function backup_languagelesson_seenbranches($bf,$preferences,$pageno) {
+    function backup_languagelesson_seenbranches($bf,$preferences,$pageid) {
 
         global $CFG;
 
         $status = true;
 
         // get the branches in a set order, the id order
-        $languagelesson_seenbranches = get_records("languagelesson_seenbranches", "pageid", $pageno, "id");
+        $languagelesson_seenbranches = get_records("languagelesson_seenbranches", "pageid", $pageid, "id");
 
         //If there is languagelesson_seenbranches
         if ($languagelesson_seenbranches) {

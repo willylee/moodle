@@ -278,6 +278,16 @@
                 //We'll need this later!!
                 $oldid = backup_todb($answer_info['#']['ID']['0']['#']);
 
+				//If this answer was stored with an ID of 0, then it's a placeholder for restoring incorrect attempts on
+				//arbitrary-answer questions (e.g. SHORTANSWER), so restore the attempts and move on
+				if ($oldid == 0 && $userdata) {
+					error_log("found oldid of 0");
+					$status = languagelesson_attempts_restore($oldlessonid, $newlessonid, $oldpageid, $newpageid, 0, $answer_info,
+							$qtype, $restore);
+					continue;
+				}
+				error_log("###############################");
+
                 //Now, build the lesson_answers record structure
                 $answer->lessonid = $newlessonid;
                 $answer->pageid = $newpageid;
@@ -348,11 +358,11 @@
                 $attempt->answerid = $answerid;
                 $attempt->userid = backup_todb($attempt_info['#']['USERID']['0']['#']);
                 $attempt->retry = backup_todb($attempt_info['#']['RETRY']['0']['#']);
-				$attempt->iscurrent = backuptodb($attempt_info['#']['ISCURRENT']['0']['#']);
+				$attempt->iscurrent = backup_todb($attempt_info['#']['ISCURRENT']['0']['#']);
                 $attempt->correct = backup_todb($attempt_info['#']['CORRECT']['0']['#']);
                 $attempt->score = backup_todb($attempt_info['#']['SCORE']['0']['#']);
                 $attempt->useranswer = (isset($attempt_info['#']['USERANSWER']['0']['#']))
-										? backup_todb($attempt_info['#']['USERANSWER']['0']['#'])
+										? addslashes(backup_todb($attempt_info['#']['USERANSWER']['0']['#']))
 										: null;
                 $attempt->timeseen = backup_todb($attempt_info['#']['TIMESEEN']['0']['#']);
 
@@ -362,27 +372,34 @@
                     $attempt->userid = $user->new_id;
                 }
 
-				//Re-insert the corresponding manual attempts, if any
-				$status = languagelesson_manattempts_restore($newlessonid, $newpageid, $qtype, $attempt->userid, $attempt_info, $restore);
-
                 //The structure is equal to the db, so insert the lesson_attempt
                 $newid = insert_record("languagelesson_attempts",$attempt);
 
-				//If we're backing up userdata and the question page being restored is an audio or video type, restore its submitted files
-				if ($qtype == 11 || $qtype == 12) {
-					languagelesson_restore_files($oldlessonid, $newlessonid, $oldpageid, $newpageid, $olduserid, $attempt->userid, $restore);
-				}
+				//Re-insert the corresponding manual attempts, if any
+				$status = languagelesson_manattempts_restore($newlessonid, $newpageid, $newid, $qtype, $attempt->userid, $attempt_info,
+						$restore);
 
-                //Do some output
-                if (($i+1) % 50 == 0) {
-                    if (!defined('RESTORE_SILENTLY')) {
-                        echo ".";
-                        if (($i+1) % 1000 == 0) {
-                            echo "<br/>";
-                        }
-                    }
-                    backup_flush(300);
-                }
+				if ($newid) {
+					//If we're backing up userdata and the question page being restored is an audio or video type, restore its
+					//submitted files
+					if ($qtype == 11 || $qtype == 12) {
+						languagelesson_restore_files($oldlessonid, $newlessonid, $oldpageid, $newpageid, $olduserid, $attempt->userid,
+								$restore);
+					}
+
+					//Do some output
+					if (($i+1) % 50 == 0) {
+						if (!defined('RESTORE_SILENTLY')) {
+							echo ".";
+							if (($i+1) % 1000 == 0) {
+								echo "<br/>";
+							}
+						}
+						backup_flush(300);
+					}
+				} else {
+					$status = false;
+				}
             }
         }
 
@@ -391,14 +408,14 @@
 
 	
 	
-	function languagelesson_manattempts_restore($newlessonid, $newpageid, $qtype, $newuserid, $attemptinfo, $restore) {
+	function languagelesson_manattempts_restore($newlessonid, $newpageid, $attid, $qtype, $newuserid, $attemptinfo, $restore) {
 		
 		global $CFG;
 
 		$status = true;
 		
         //Get the manattempts array (optional)
-        if (isset($info['#']['MANATTEMPT']['0'])) {
+        if (isset($attemptinfo['#']['MANATTEMPT']['0'])) {
             $manattempt_info = $attemptinfo['#']['MANATTEMPT']['0'];
 
 			$manattempt = new stdClass;
@@ -414,10 +431,15 @@
 			$manattempt->timeseen = backup_todb($manattempt_info['#']['TIMESEEN']['0']['#']);
 
 			//This structure is now equal to the db, so insert the lesson_attempt
-			$newid = insert_record("languagelesson_attempts",$attempt);
+			$newid = insert_record("languagelesson_manattempts",$manattempt);
 
-			//Now restore any feedback records corresponding to this manattempt
-			$status = languagelesson_feedbacks_restore($newlessonid, $newpageid, $newuserid, $newid, $manattempt_info, $restore);
+			//continue restoring and update the assignment record manattempt pointer if successful insertion
+			if ($newid && set_field('languagelesson_attempts', 'manattemptid', $newid, 'id', $attid)) {
+				//Now restore any feedback records corresponding to this manattempt
+				$status = languagelesson_feedbacks_restore($newlessonid, $newpageid, $newuserid, $newid, $manattempt_info, $restore);
+			} else {
+				$status = false;
+			}
 		}
 
 		return $status;
@@ -426,14 +448,14 @@
 
 
 	
-	function languagelesson_feedbacks_restore($newlessonid, $newpageid, $qtype, $newuserid, $manattemptid, $manattempt_info, $restore) {
+	function languagelesson_feedbacks_restore($newlessonid, $newpageid, $newuserid, $manattemptid, $manattempt_info, $restore) {
 		
 		global $CFG;
 
 		$status = true;
 
 		//Get the optional feedbacks array
-		if (isset($info['#']['FEEDBACKS']['0']['#']['FEEDBACK'])) {
+		if (isset($manattempt_info['#']['FEEDBACKS']['0']['#']['FEEDBACK'])) {
 			$feedbacks = $manattempt_info['#']['FEEDBACKS']['0']['#']['FEEDBACK'];
             for($i = 0; $i < sizeof($feedbacks); $i++) {
 				$feedback_info = $feedbacks[$i];
@@ -455,6 +477,9 @@
                 if ($teacher) {
                     $feedback->teacherid = $teacher->new_id;
                 }
+
+				//Push it into the db
+				$status = insert_record("languagelesson_feedback", $feedback);
 
 			}
 		}
@@ -725,9 +750,16 @@
                 $default->conditions = backup_todb($default_info['#']['CONDITIONS']['0']['#']);
                 $default->grade = backup_todb($default_info['#']['GRADE']['0']['#']);
                 $default->showongoingscore = backup_todb($default_info['#']['SHOWONGOINGSCORE']['0']['#']);
+                $default->showoldanswer = backup_todb($default_info['#']['SHOWOLDANSWER']['0']['#']);
                 $default->maxattempts = backup_todb($default_info['#']['MAXATTEMPTS']['0']['#']);
+                $default->penalty = backup_todb($default_info['#']['PENALTY']['0']['#']);
+                $default->penaltytype = backup_todb($default_info['#']['PENALTYTYPE']['0']['#']);
+                $default->penaltyvalue = backup_todb($default_info['#']['PENALTYVALUE']['0']['#']);
                 $default->defaultfeedback = backup_todb($default_info['#']['DEFAULTFEEDBACK']['0']['#']);
+                $default->defaultcorrect = backup_todb($default_info['#']['DEFAULTCORRECT']['0']['#']);
+                $default->defaultwrong = backup_todb($default_info['#']['DEFAULTWRONG']['0']['#']);
                 $default->autograde = backup_todb($default_info['#']['AUTOGRADE']['0']['#']);
+                $default->shuffleanswers = backup_todb($default_info['#']['SHUFFLEANSWERS']['0']['#']);
                 $default->timed = backup_todb($default_info['#']['TIMED']['0']['#']);
                 $default->maxtime = backup_todb($default_info['#']['MAXTIME']['0']['#']);
                 $default->mediaheight = backup_todb($default_info['#']['MEDIAHEIGHT']['0']['#']);
