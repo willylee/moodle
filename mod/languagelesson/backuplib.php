@@ -291,8 +291,6 @@
 		//If this function has been called, then there should be a record, and there will only ever be 1, because any attempt can only
 		//correspond to 1 manattempt
 
-		error_log("writing manattempt");
-
 		//Start the manattempt
 		$status =fwrite ($bf,start_tag("MANATTEMPT",11,true));
 		//Save manattempt contents
@@ -356,10 +354,10 @@
        
         $status = true;
 
-        //First we check to moddata exists and create it as necessary
+        //First we check if moddata exists and create it as necessary
         //in temp/backup/$backup_code  dir
         $status = check_and_create_moddata_dir($preferences->backup_unique_code);
-        //Now copy the assignment dir
+        //Now copy the languagelesson dir
         if ($status) {
             //Only if it exists !! Thanks to Daniel Miksik.
             if (is_dir($CFG->dataroot."/".$preferences->backup_course."/".$CFG->moddata."/languagelesson")) {
@@ -378,18 +376,26 @@
        
         $status = true;
 
-        //First we check to moddata exists and create it as necessary
+        //First we check if moddata exists and create it as necessary
         //in temp/backup/$backup_code  dir
         $status = check_and_create_moddata_dir($preferences->backup_unique_code);
         $status = check_dir_exists($CFG->dataroot."/temp/backup/".$preferences->backup_unique_code."/moddata/languagelesson/",true);
-        //Now copy the assignment dir
+        //Now copy the languagelesson dir
         if ($status) {
+			error_log("status was true");
             //Only if it exists !! Thanks to Daniel Miksik.
             if (is_dir($CFG->dataroot."/".$preferences->backup_course."/".$CFG->moddata."/languagelesson/".$instanceid)) {
-                $status = backup_copy_file($CFG->dataroot."/".$preferences->backup_course."/".$CFG->moddata."/languagelesson/".$instanceid,
-                                           $CFG->dataroot."/temp/backup/".$preferences->backup_unique_code."/moddata/languagelesson/".$instanceid);
-            }
-        }
+				error_log("found the instance dir");
+				$status =
+					backup_copy_file($CFG->dataroot."/".$preferences->backup_course."/".$CFG->moddata."/languagelesson/".$instanceid,
+						   $CFG->dataroot."/temp/backup/".$preferences->backup_unique_code."/moddata/languagelesson/".$instanceid);
+				error_log((($status) ? "instance backup succeeded" : "instance backup failed"));
+            } else {
+				error_log("failed to find instance dir");
+			}
+        } else {
+			error_log("status was false");
+		}
 
         return $status;
 

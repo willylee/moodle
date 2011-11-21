@@ -38,6 +38,11 @@
     //
     //-----------------------------------------------------------
 
+
+// we need the globals established in locallib.php
+require_once('locallib.php');
+
+
     //This function executes all the restore procedure about this mod
     function languagelesson_restore_mods($mod,$restore) {
 
@@ -202,8 +207,8 @@
                 //for matching and multi-answer multi-choice questions
                 if ($userdata) { // first check to see if we even have to do this
                     // if multi-answer multi-choice question or matching
-                    if (($page->qtype == 3 && $page->qoption) ||
-                         $page->qtype == 5) {
+                    if (($page->qtype == LL_MULTICHOICE && $page->qoption) ||
+                         $page->qtype == LL_MATCHING) {
                         // get all the attempt records for this page
                         if ($attempts = get_records("languagelesson_attempts", "pageid", $newid)) {
                             foreach ($attempts as $attempt) {
@@ -281,12 +286,10 @@
 				//If this answer was stored with an ID of 0, then it's a placeholder for restoring incorrect attempts on
 				//arbitrary-answer questions (e.g. SHORTANSWER), so restore the attempts and move on
 				if ($oldid == 0 && $userdata) {
-					error_log("found oldid of 0");
 					$status = languagelesson_attempts_restore($oldlessonid, $newlessonid, $oldpageid, $newpageid, 0, $answer_info,
 							$qtype, $restore);
 					continue;
 				}
-				error_log("###############################");
 
                 //Now, build the lesson_answers record structure
                 $answer->lessonid = $newlessonid;
@@ -321,7 +324,8 @@
 
                     if ($userdata) {
                         //We have to restore the lesson_attempts table now (a answers level table)
-                        $status = languagelesson_attempts_restore($oldlessonid, $newlessonid, $oldpageid, $newpageid, $newid, $answer_info, $qtype, $restore);
+						$status = languagelesson_attempts_restore($oldlessonid, $newlessonid, $oldpageid, $newpageid, $newid,
+								$answer_info, $qtype, $restore);
                     }
                 } else {
                     $status = false;
@@ -382,7 +386,9 @@
 				if ($newid) {
 					//If we're backing up userdata and the question page being restored is an audio or video type, restore its
 					//submitted files
-					if ($qtype == 11 || $qtype == 12) {
+					if ($qtype == LL_ESSAY
+							|| $qtype == LL_AUDIO
+							|| $qtype == LL_VIDEO) {
 						languagelesson_restore_files($oldlessonid, $newlessonid, $oldpageid, $newpageid, $olduserid, $attempt->userid,
 								$restore);
 					}
@@ -494,10 +500,13 @@
 /******************************************************************************************************/
 /// copied from mod/assignment/restorelib.php, modified for languagelesson
     
-    //This function copies the assignment related info from backup temp dir to course moddata folder,
-    //creating it if needed and recoding everything (assignment id and user id) 
+    //This function copies the languagelesson-related info from backup temp dir to course moddata folder,
+    //creating it if needed and recoding everything (languagelesson id and user id) 
     function languagelesson_restore_files ($oldllid, $newllid, $oldpageid, $newpageid, $olduserid, $newuserid, $restore) {
     //function languagelesson_restore_files($oldllid, $newllid, $restore) {
+
+
+		error_log("restore_files called");
 
         global $CFG;
 
