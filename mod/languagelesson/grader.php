@@ -269,7 +269,7 @@
 		$thisRow .= "<td class=\"grader assign_grade_cell\"><input type=\"text\" size=\"2\" class=\"holistic_grade_box\"
 			onblur=\"update_holistic_grade_array(this, $student->id);\" name=\"holistic_grade_box_$student->id\" /></td>";
 		$thisRow .= "<td class=\"grader saved_grade_cell\">".(in_array($student->id, array_keys($grades)) ?
-				sprintf("%1.2f%%",$grades[$student->id]) : '')."</td>";
+				$grades[$student->id] : '')."</td>";
 		$thisRow .= "<td class=\"grader email_cell\"><input type=\"checkbox\" class=\"email_student_checkbox\"
 			onclick=\"update_stulist(event, this);\" value=\"$student->id\" /></td>";
 		$thisRow .= '</tr>';
@@ -288,17 +288,7 @@
 							<td id="student_column_header_cell" class="grader header_cell"><span class="rotate-text">
 								<?php echo get_string('graderstudentcolumnname','languagelesson'); ?></span></td>
 						</tr>
-						<?php
-					/*	foreach ($names as $name) {
-							$student = $students_by_name[$name];
-							echo '<tr class="student_row"><td class="stupic_cell">';
-							print_user_picture($student, $lesson->course, $student->picture);
-							echo '</td><td class="stuname_cell">';
-							echo "$student->firstname $student->lastname";
-							echo '</td></tr>';
-						}*/
-						echo $namesContents;
-						?>
+						<?php echo $namesContents; ?>
 					</table>
 				</div>
 		
@@ -351,7 +341,8 @@
 					<table id="dynamic_content">
 						<tr class="header_row">
 							<td class=\"grader\" id=\"assign_grade_column_header_cell\">
-								<?php echo get_string("assigngradecolumnheader", 'languagelesson'); ?></td>
+								<?php echo get_string("assigngradecolumnheader", 'languagelesson', get_field('languagelesson', 'grade',
+											'id', $lesson->id)); ?></td>
 							<td class=\"grader\" id=\"saved_grade_column_header_cell\">
 								<?php echo get_string("savedgradecolumnheader", 'languagelesson'); ?></td>
 						</tr>

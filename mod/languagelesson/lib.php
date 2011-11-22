@@ -29,6 +29,8 @@ function languagelesson_add_instance($lesson) {
 
     languagelesson_process_post_save($lesson);
 
+	// the $lesson object is likely to have the grade field not set, but grade_item_update requires it, so set it here
+	if (! isset($lesson->grade)) { $lesson->grade = 0; }
     languagelesson_grade_item_update(stripslashes_recursive($lesson));
 
     return $lesson->id;
@@ -495,19 +497,6 @@ function languagelesson_grade_item_update($lesson, $grades=NULL) {
     if ($grades  === 'reset') {
         $params['reset'] = true;
         $grades = NULL;
-    } else if (!empty($grades)) {
-        // Need to calculate raw grade (Note: $grades has many forms)
-        if (is_object($grades)) {
-            $grades = array($grades->userid => $grades);
-        } else if (array_key_exists('userid', $grades)) {
-            $grades = array($grades['userid'] => $grades);
-        }
-        foreach ($grades as $key => $grade) {
-            if (!is_array($grade)) {
-                $grades[$key] = $grade = (array) $grade;
-            }
-            $grades[$key]['rawgrade'] = ($grade['rawgrade'] * $lesson->grade / 100);
-        }
     }
 
     return grade_update('mod/languagelesson', $lesson->course, 'mod', 'languagelesson', $lesson->id, 0, $grades, $params);

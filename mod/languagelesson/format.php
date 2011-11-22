@@ -314,6 +314,9 @@ class qformat_default {
       		$this->build_submit_autoupload_form($autouploadfnames, $upload_destination);
       	}
         
+
+		// update the calculated max score for this lesson
+		recalculate_maxgrade($lesson->id);
         
         
         return true;

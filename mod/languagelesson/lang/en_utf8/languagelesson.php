@@ -274,8 +274,8 @@ $string['yourcurrentgradeisoutof'] = 'Your current grade is $a->grade out of $a-
 $string['youshouldview'] = 'You should answer at least: $a';
 
 
-$string['displayscorewithoutmanuals'] = 'Your score is $a->earned (out of $a->total).<br />Your grade is $a->grade.';
-$string['displayscorewithmanuals'] = 'You earned $a->earned out of $a->tempmaxgrade for the automatically graded questions.<br />Your $a->nmanquestions essay/audio/video question(s) will be graded and added<br />into your final score at a later date.<br /><br />Your current grade without the essay/audio/video question(s) is $a->earned out of $a->total.<br />Your percentage grade is $a->grade.';
+$string['displayscorewithoutmanuals'] = 'Your score is $a->earned (out of $a->total).';
+$string['displayscorewithmanuals'] = 'You earned $a->earned out of $a->tempmaxgrade for the automatically graded questions.<br />Your $a->nmanquestions essay/audio/video question(s) will be graded and added<br />into your final score at a later date.<br /><br />Your current grade without the essay/audio/video question(s) is $a->earned out of $a->total.';
 
 $string['holisticgrader'] = 'Grading';
 
@@ -337,7 +337,7 @@ $string['emailmessagehtml'] = '$a->teacher has posted feedback for your submissi
 
 $string['automaticgrading'] = "Automatic grading";
 
-$string['assigngradecolumnheader'] = "Grade (0-100)";
+$string['assigngradecolumnheader'] = 'Grade<br />(0-$a)';
 $string['assigngradesbutton'] = "Assign grades";
 $string['savedgradecolumnheader'] = "Saved grade";
 $string['improperholisticgrade'] = "Please enter a grade between 0 and 100.";
@@ -363,7 +363,7 @@ $string['showoldanswer'] = 'Display previous answer';
 $string['shuffleanswers'] = 'Shuffle answers';
 
 $string['oldgradeheader'] = 'You have already completed this Language Lesson';
-$string['oldgradethisisyourgrade'] = 'Your current grade on this language lesson is $a->grade%%.';
+$string['oldgradethisisyourgrade'] = 'Your current score on this language lesson is $a->grade/$a->maxgrade.';
 $string['oldgradehasungraded'] = 'One or more of your submissions on this language lesson has not yet been graded. The above grade may
 or may not reflect your final grade.';
 $string['oldgradeassignmentmessage'] = 'If you would like to change your answers, please click the \'Enter lesson\' button below.';

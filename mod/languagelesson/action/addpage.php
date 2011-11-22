@@ -274,7 +274,9 @@
 			actionInput.value = action;
 		}
 	</script>
+	<?php if ($qtype != LL_TRUEFALSE) { ?>
 	<input type="submit" onclick="setAction('addpage');" value="<?php print_string('add4moreanswerfields', 'languagelesson'); ?>" />
+	<?php } ?>
 	<br /><br />
     <input type="submit" onclick="setAction('insertpage');" value="<?php print_string("savepage", "languagelesson") ?>" />
     <input type="submit" onclick="setAction('insertpage');" name="cancel" value="<?php print_string("cancel") ?>" />

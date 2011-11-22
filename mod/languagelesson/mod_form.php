@@ -63,7 +63,6 @@ class mod_languagelesson_mod_form extends moodleform_mod {
 						var typeField = theform.elements['type']
 						
 						autograde = theform.elements['autograde'];
-						maxgrade = theform.elements['grade'];
 						penalty = theform.elements['penalty'];
 						penaltytype = theform.elements['penaltytype'];
 						penaltyvalue = theform.elements['penaltyvalue'];
@@ -75,7 +74,6 @@ class mod_languagelesson_mod_form extends moodleform_mod {
 						
 						if (typeField.value == ".LL_TYPE_PRACTICE.") {
 							autograde.disabled = true;
-							maxgrade.disabled = true;
 							penalty.disabled = true;
 							penaltytype.disabled = true;
 							penaltyvalue.disabled = true;
@@ -86,7 +84,6 @@ class mod_languagelesson_mod_form extends moodleform_mod {
 							contextcolors.value = 1;
 						} else {
 							autograde.disabled = false;
-							maxgrade.disabled = false;
 							penalty.disabled = false;
 							if (penalty.value == '1') { penaltytype.disabled = false; }
 							if (!penaltytype.disabled &&
@@ -111,14 +108,6 @@ class mod_languagelesson_mod_form extends moodleform_mod {
         $mform->setHelpButton('autograde', array('automaticgrading', get_string('automaticgrading', 'languagelesson'), 'languagelesson'));
         $mform->setDefault('autograde', 0);
 
-        $grades = array();
-        for ($i=100; $i>=0; $i--) {
-            $grades[$i] = $i;
-        }
-        $mform->addElement('select', 'grade', get_string('maximumgrade'), $grades);
-        $mform->setDefault('grade', 100);
-        $mform->setHelpButton('grade', array('grade', get_string('maximumgrade'), 'languagelesson'));
-		
 		$mform->addElement('selectyesno', 'penalty', get_string('usepenalty', 'languagelesson'));
 		$mform->setHelpButton('penalty', array('penalty', get_string('usepenalty','languagelesson'), 'languagelesson'));
 		$mform->setDefault('penalty', 0);

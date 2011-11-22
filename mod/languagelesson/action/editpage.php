@@ -525,7 +525,9 @@
 			actionInput.value = action;
 		}
 	</script>
+	<?php if ($page->qtype != LL_TRUEFALSE) { ?>
 	<input type="submit" onclick="setAction('editpage')" value="<?php print_string('add4moreanswerfields', 'languagelesson'); ?>" />
+	<?php } ?>
 	<br /><br />
 	<input type="button" onclick="setAction('updatepage');" value="<?php print_string("redisplaypage", "lesson") ?>" 
 		onclick="getElementById('editpage').redisplay.value=1;getElementById('editpage').submit();" />

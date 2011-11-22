@@ -1635,11 +1635,8 @@ function languagelesson_grade($lesson, $userid = 0) {
     $ncorrect		= 0;	// the number of questions the user answered correctly
     $nmanual		= 0;	// the number of manual questions answered
 	
-    $totalpts      	= 0;	// the total number of points possible
     $earnedpts     	= 0;	// the user's earned number of points
     $manualpoints 	= 0;	// the number of potential manual points
-    
-	$thegrade    	= 0;	// the raw (out of 100) grade assigned
     
 	if (!$lesson->penalty && ($pageattempts = languagelesson_get_most_recent_attempts($lesson->id, $userid)) ||
 		$lesson->penalty && ($pageattempts = languagelesson_get_all_attempts($lesson->id, $userid))) {
@@ -1761,65 +1758,14 @@ function languagelesson_grade($lesson, $userid = 0) {
 
 
 		
-	//////////////////////////////////////
-	// CALCULATE MAXIMUM POSSIBLE SCORE FOR LESSON
-		
-	/// initialize the array containing pageID => best score
-		$bestscores = array();
-		
-	/// construct the array storing page => [answers]
-		$answersByPageID = array();
-		foreach ($answers as $answer) {
-			if (!array_key_exists($answer->pageid, $answersByPageID)) {
-				$answersByPageID[$answer->pageid] = array();
-			}
-			$answersByPageID[$answer->pageid][] = $answer;
-		}
-		
-	/// Find the highest possible score per page
-		foreach ($answersByPageID as $pageid => $answerset) {
-			$page = $pages[$pageid];
-		/// if we're looking at a page with multiple correct answers, sum their scores
-			if (($page->qtype == LL_MULTICHOICE && $page->qoption) // it's a multiple-choice with multiple correct answers
-				|| $page->qtype == LL_MATCHING
-				|| $page->qtype == LL_CLOZE) {
-				$thissum = 0;
-				foreach ($answerset as $answer) {
-					if ($answer->score > 0 && (!empty($answer->answer))) { $thissum += $answer->score; }
-				}
-				$bestscores[$page->id] = $thissum;
-			}
-		/// otherwise, pull the highest score from the possible answers
-			else {
-				foreach ($answerset as $answer) {
-					if(!array_key_exists($page->id, $bestscores)) {
-						$bestscores[$page->id] = $answer->score;
-					} else if ($bestscores[$page->id] < $answer->score) {
-						$bestscores[$page->id] = $answer->score;
-					}
-				}
-			}
-		}
-		
-	/// and sum them to get the total
-        $totalpts = array_sum($bestscores);
-		
 	}
-	// </calculate maximum possible score for lesson>
-	//////////////////////////////////////
 	else { error_log("didn't get any attempts"); }
 	
-    if ($totalpts) { // not zero
-        $thegrade = 100 * ((float)$earnedpts / $totalpts);
-    }
-    
     // Build the grade information object
     $gradeinfo               	= new stdClass;
     $gradeinfo->nanswered 		= $nanswered;
-    $gradeinfo->total 			= $totalpts;
-    $gradeinfo->earned			= $earnedpts;
-    $gradeinfo->grade 			= $thegrade;
 	$gradeinfo->nmanual			= $nmanual;
+    $gradeinfo->grade			= $earnedpts;
     $gradeinfo->manualpoints	= $manualpoints;
     
     return $gradeinfo;
@@ -1878,15 +1824,10 @@ function languagelesson_print_ongoing_score($lesson) {
     if (has_capability('mod/languagelesson:manage', $context)) {
         echo "<p align=\"center\">".get_string('teacherongoingwarning', 'languagelesson').'</p>';
     } else {
-		/// pull the current grade information for this lesson
-		// @TODO@
-		//   - since this score is calculated and saved after every question submission, shouldn't need to call this func again here
-        $gradeinfo = languagelesson_grade($lesson);
-        
 		/// build and print the score message
         $a = new stdClass;
-        $a->score = $gradeinfo->earned;
-        $a->currenthigh = $gradeinfo->total;
+		$a->score = get_field('languagelesson_grades', 'grade', 'lessonid', $lesson->id, 'userid', $USER->id);
+		$a->currenthigh = get_field('languagelesson', 'grade', 'id', $lesson->id);
         print_simple_box(get_string("ongoingscoremessage", "languagelesson", $a), "center");
     }
 }
@@ -3795,6 +3736,66 @@ function languagelesson_validate_cloze_text($html, $answertexts, $dropdowns) {
 	}
 
 	return true;
+}
+
+
+
+
+/*
+ * Update the languagelesson instance's calculated maximum grade
+ *
+ * @param int $lessonid The ID of the lesson to update
+ */
+function recalculate_maxgrade($lessonid) {
+	// initialize the array containing pageID => best score
+	$bestscores = array();
+
+	// pull all pages and answers
+	$pages = get_records('languagelesson_pages', 'lessonid', $lessonid);
+	$answers = get_records('languagelesson_answers', 'lessonid', $lessonid);
+	
+	// construct the array storing page => [answers]
+	$answersByPageID = array();
+	foreach ($answers as $answer) {
+		if (!array_key_exists($answer->pageid, $answersByPageID)) {
+			$answersByPageID[$answer->pageid] = array();
+		}
+		$answersByPageID[$answer->pageid][] = $answer;
+	}
+	
+	// Find the highest possible score per page
+	foreach ($answersByPageID as $pageid => $answerset) {
+		$page = $pages[$pageid];
+		// if we're looking at a page with multiple correct answers, sum their scores
+		if (($page->qtype == LL_MULTICHOICE && $page->qoption) // it's a multiple-choice with multiple correct answers
+			|| $page->qtype == LL_MATCHING
+			|| $page->qtype == LL_CLOZE) {
+			$thissum = 0;
+			foreach ($answerset as $answer) {
+				if ($answer->score > 0 && (!empty($answer->answer))) { $thissum += $answer->score; }
+			}
+			$bestscores[$page->id] = $thissum;
+		}
+		// otherwise, pull the highest score from the possible answers
+		else {
+			foreach ($answerset as $answer) {
+				if(!array_key_exists($page->id, $bestscores)) {
+					$bestscores[$page->id] = $answer->score;
+				} else if ($bestscores[$page->id] < $answer->score) {
+					$bestscores[$page->id] = $answer->score;
+				}
+			}
+		}
+	}
+		
+	// and sum them to get the total
+	$totalpts = array_sum($bestscores);
+
+	// now update the instance's set grade value
+	if (! set_field('languagelesson', 'grade', $totalpts, 'id', $lessonid)) {
+		error('Updatepage: Could not update languagelesson instance saved max grade');
+	}
+
 }
 
 ?>

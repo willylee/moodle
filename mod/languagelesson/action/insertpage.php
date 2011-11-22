@@ -216,6 +216,10 @@
         }
     }
     
+	// Now that setting answers is done, update the languagelesson instance's calculated max grade
+	recalculate_maxgrade($lesson->id);
+
+
     languagelesson_set_message(get_string('insertedpage', 'languagelesson').': '.format_string($newpage->title, true), 'notifysuccess');
     redirect("$CFG->wwwroot/mod/languagelesson/edit.php?id=$cm->id");
 ?>

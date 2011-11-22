@@ -246,6 +246,11 @@
         }
     }
 
+
+	// Now that setting answers is done, update the languagelesson instance's calculated max grade
+	recalculate_maxgrade($lesson->id);
+
+
     if ($form->redisplay) {
         redirect("$CFG->wwwroot/mod/languagelesson/lesson.php?id=$cm->id&amp;action=editpage&amp;pageid=$page->id&amp;redirect=$redirect");
     }

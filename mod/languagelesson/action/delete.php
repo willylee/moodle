@@ -75,6 +75,9 @@
 		}
 	}
 
+	// update the lesson's calculated max grade
+	recalculate_maxgrade($lesson->id);
+
     languagelesson_set_message(get_string('deletedpage', 'languagelesson').': '.format_string($thispage->title, true), 'notifysuccess');
     redirect("$CFG->wwwroot/mod/languagelesson/edit.php?id=$cm->id");
 ?>

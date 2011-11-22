@@ -378,6 +378,7 @@
 			
 			if ($course->showgrades) {
 				$a->grade = $grade->grade;
+				$a->maxgrade = get_field('languagelesson', 'grade', 'id', $lesson->id);
 				echo '<p>'.get_string('oldgradethisisyourgrade', 'languagelesson', $a).'</p>';
 
 				if (count_records('languagelesson_manattempts', 'lessonid', $lesson->id, 'userid', $USER->id, 'graded', 0)) {
@@ -1598,9 +1599,8 @@
             if ($gradeinfo->nanswered && $course->showgrades) { //changed from if($gradeinfo->attempts)
 			/// build the message to show to the student
                 $a = new stdClass;
-                $a->earned = $gradeinfo->earned;
-                $a->total = $gradeinfo->total;
-                $a->grade = number_format($gradeinfo->grade * $lesson->grade / 100, 1);
+                $a->earned = $gradeinfo->grade;
+                $a->total = get_field('languagelesson', 'grade', 'id', $lesson->id);
 				
 				/// if there were manually-graded questions in the lesson, let the student know that
 				/// the grade they have now is NOT necessarily their final grade
