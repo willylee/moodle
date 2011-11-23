@@ -188,16 +188,10 @@
 }
 
 /***
- *** Slide show Style
+ *** Question creation/editing page styles
  ***/
-
-/* NOTE: background color, height and width are set in the lesson settings */
-.mod-languagelesson .slideshow {  
-    overflow: auto;
-    padding-right: 16px; /* for the benefit of macIE5 only */ 
-    /* \ commented backslash hack - recover from macIE5 workarounds, it will ignore the following rule */
-    padding-right: 0;
-    padding: 15px;
+.mod-languagelesson .answerrow_cell {
+	padding: 0px 10px;
 }
 
 /***

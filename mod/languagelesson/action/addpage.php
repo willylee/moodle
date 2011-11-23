@@ -97,10 +97,12 @@
     <?php
     echo "<tr><td><b>";
     echo get_string("pagecontents", "languagelesson").":</b><br />\n";
-    print_textarea($usehtmleditor, 25,70, 630, 400, "contents", ((isset($data->contents)) ? $data->contents : ''));
+	echo '<div style="margin-left:auto; margin-right:auto;">';
+    print_textarea($usehtmleditor, 25,120, 630, 400, "contents", ((isset($data->contents)) ? $data->contents : ''));
     if ($usehtmleditor) {
         use_html_editor("contents");
     }
+	echo '</div>';
     echo "</td></tr>\n";
 	// for brevity, store this lesson's defaultpoints value here
 	$defaultpoints = get_field('languagelesson', 'defaultpoints', 'id', $lesson->id);
@@ -109,29 +111,24 @@
         case LL_TRUEFALSE :
             for ($i = 0; $i < 2; $i++) {
                 $iplus1 = $i + 1;
-                echo "<tr><td><b>".get_string("answer", "languagelesson")." $iplus1:</b><br />\n";
-                print_textarea(false, 6, 70, 630, 300, "answer[$i]", ((isset($data->answer[$i]) ? $data->answer[$i] : '')));
-                echo "</td></tr>\n";
-                echo "<tr><td><b>".get_string("response", "languagelesson")." $iplus1:</b><br />\n";
-                print_textarea(false, 6, 70, 630, 300, "response[$i]", ((isset($data->response[$i]) ? $data->response[$i] : '')));
-                echo "</td></tr>\n";
-                echo "<tr><td><b>".get_string("jump", "languagelesson")." $iplus1:</b> \n";
-                if ($i) {
-                    // answers 2, 3, 4... jumpto this page
-                    choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : 0), "");
-                } else {
-                    // answer 1 jumpto next page
-                    choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
-                }
+                echo "<tr><td>";
+				echo '<table><tr><td class="answerrow_cell">';
+				echo "<b>".get_string("answer", "languagelesson")." $iplus1:</b><br />\n";
+                print_textarea(false, 1, 30, 0, 0, "answer[$i]", ((isset($data->answer[$i]) ? $data->answer[$i] : '')));
+                echo "</td><td class=\"answerrow_cell\">\n";
+				echo '<b>'.get_string("score", "languagelesson")." $iplus1:</b><br />";
+				echo "<input type=\"text\" name=\"score[$i]\" value=\"".((isset($data->score[$i])) ? $data->score[$i] :
+						(($i) ? '0' : $defaultpoints))."\" size=\"5\" />";
+				echo "</td><td class=\"answerrow_cell\">\n";
+                echo "<b>".get_string("response", "languagelesson")." $iplus1:</b><br />\n";
+                print_textarea(false, 1, 30, 0, 0, "response[$i]", ((isset($data->response[$i]) ? $data->response[$i] : '')));
+                echo "</td><td class=\"answerrow_cell\">\n";
+                echo "<b>".get_string("jump", "languagelesson")." $iplus1:</b><br />\n";
+				choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : 
+						(($i) ? 0 : LL_NEXTPAGE)), "");
                 helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-                if ($i) {
-                    echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
-						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '0')."\" size=\"5\" />";
-                } else {
-                    echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
-						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : $defaultpoints)."\" size=\"5\" />";
-                }
-                echo "</td></tr>\n";
+                echo "</td></tr></table>\n";
+				echo '</td></tr>';
             }
             break;
         case LL_AUDIO :
@@ -190,13 +187,25 @@
             // default code
             for ($i = 0; $i < $maxanswers; $i++) {
                 $iplus1 = $i + 1;
-                echo "<tr><td><b>".get_string("answer", "languagelesson")." $iplus1:</b><br />\n";
-                print_textarea(false, 6, 70, 630, 300, "answer[$i]", ((isset($data->answer[$i]) ? $data->answer[$i] : '')));
-                echo "</td></tr>\n";
-                echo "<tr><td><b>".get_string("response", "languagelesson")." $iplus1:</b><br />\n";
-                print_textarea(false, 6, 70, 630, 300, "response[$i]", ((isset($data->response[$i]) ? $data->response[$i] : '')));
-                echo "</td></tr>\n";
-                echo "<tr><td><b>".get_string("jump", "languagelesson")." $iplus1:</b> \n";
+                echo "<tr><td>";
+				echo '<table><tr><td class="answerrow_cell">';
+				echo "<b>".get_string("answer", "languagelesson")." $iplus1:</b><br />\n";
+                print_textarea(false, 1, 30, 0, 0, "answer[$i]", ((isset($data->answer[$i]) ? $data->answer[$i] : '')));
+                echo "</td><td class=\"answerrow_cell\">\n";
+                if ($i) {
+					echo '<b>'.get_string("score", "languagelesson")." $iplus1:</b><br />";
+					echo "<input type=\"text\" name=\"score[$i]\" value=\"".((isset($data->score[$i])) ? $data->score[$i] : '0')."\"
+						size=\"5\" />";
+                } else {
+					echo '<b>'.get_string("score", "languagelesson")." $iplus1:</b><br />";
+					echo "<input type=\"text\" name=\"score[$i]\" value=\"".((isset($data->score[$i])) ? $data->score[$i] :
+							$defaultpoints)."\" size=\"5\" />";
+                }
+				echo "</td><td class=\"answerrow_cell\">\n";
+                echo "<td><b>".get_string("response", "languagelesson")." $iplus1:</b><br />\n";
+                print_textarea(false, 1, 30, 0, 0, "response[$i]", ((isset($data->response[$i]) ? $data->response[$i] : '')));
+				echo "</td><td class=\"answerrow_cell\">\n";
+                echo "<b>".get_string("jump", "languagelesson")." $iplus1:</b><br />\n";
                 if ($i) {
                     // answers 2, 3, 4... jumpto this page
                     choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : 0), "");
@@ -205,13 +214,7 @@
                     choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
                 }
                 helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-                if ($i) {
-					echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
-						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '0')."\" size=\"5\" />";
-                } else {
-					echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
-						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : $defaultpoints)."\" size=\"5\" />";
-                }
+				echo '</td></tr></table>';
                 echo "</td></tr>\n";
             }
             break;
