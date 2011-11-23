@@ -75,6 +75,7 @@
         fwrite ($bf,full_tag("TYPE",4,false,$lesson->type));
         fwrite ($bf,full_tag("DEPENDENCY",4,false,$lesson->dependency));
         fwrite ($bf,full_tag("CONDITIONS",4,false,$lesson->conditions));
+        fwrite ($bf,full_tag("DEFAULTPOINTS",4,false,$lesson->defaultpoints));
         fwrite ($bf,full_tag("GRADE",4,false,$lesson->grade));
         fwrite ($bf,full_tag("SHOWONGOINGSCORE",4,false,$lesson->showongoingscore));
 		fwrite ($bf,full_tag("SHOWOLDANSWER",4,false,$lesson->showoldanswer));
@@ -514,6 +515,7 @@
             //Print default data
             fwrite ($bf,full_tag("TYPE",5,false,$default->type));
             fwrite ($bf,full_tag("CONDITIONS",5,false,$default->conditions));
+            fwrite ($bf,full_tag("DEFAULTPOINTS",5,false,$default->defaultpoints));
             fwrite ($bf,full_tag("GRADE",5,false,$default->grade));
             fwrite ($bf,full_tag("SHOWONGOINGSCORE",5,false,$default->showongoingscore));
 			fwrite ($bf,full_tag("SHOWOLDANSWER",5,false,$lesson->showoldanswer));

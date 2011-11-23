@@ -451,4 +451,6 @@ $string['emailssent'] = 'Notification emails sent';
 $string['gradessaved'] = 'Custom grades assigned';
 
 $string['add4moreanswerfields'] = 'Add 4 more answer fields';
+
+$string['defaultpoints'] = 'Default points per question';
 ?>

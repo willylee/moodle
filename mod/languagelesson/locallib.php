@@ -748,7 +748,8 @@ function languagelesson_save_question_options($question) {
                     if ($question->fraction[$key] >=0.5) {
                         $answer->jumpto = LL_NEXTPAGE;
                     }
-					$answer->score = $question->fraction[$key];
+					$answer->score = $question->fraction[$key] * get_field('languagelesson', 'defaultpoints', 'id',
+							$question->lessonid);
                     $answer->timecreated   = $timenow;
                     $answer->answer   = $dataanswer;
                     $answer->response = $question->feedback[$key];
@@ -781,7 +782,7 @@ function languagelesson_save_question_options($question) {
 				$answer = new stdClass;
 				$answer->lessonid = $question->lessonid;
 				$answer->pageid = $question->id;
-				$answer->score = $question->fraction[$key];
+				$answer->score = $question->fraction[$key] * get_field('languagelesson', 'defaultpoints', 'id', $question->lessonid);
 				$answer->timecreated = $timenow;
 				$answer->answer = $key . '|' . $atext;
 				// check if it's a drop-down
@@ -826,7 +827,8 @@ function languagelesson_save_question_options($question) {
                     $answer->timecreated   = $timenow;
                     $min = $question->answer[$key] - $question->tolerance[$key];
                     $max = $question->answer[$key] + $question->tolerance[$key];
-					$answer->score = $question->fraction[$key];
+					$answer->score = $question->fraction[$key] * get_Field('languagelesson', 'defaultpoints', 'id',
+						$question->lessonid);
                     $answer->answer   = $min.":".$max;
                     // $answer->answer   = $question->min[$key].":".$question->max[$key]; original line for min/max
                     $answer->response = $question->feedback[$key];
@@ -859,7 +861,7 @@ function languagelesson_save_question_options($question) {
             $answer->timecreated   = $timenow;
             $answer->answer = get_string("true", "quiz");
             if ((int)$question->correctanswer == 1) {
-            	$answer->score = 1;
+            	$answer->score = get_field('languagelesson', 'defaultpoints', 'id', $question->lessonid);
                 $answer->jumpto = LL_NEXTPAGE;
             } else {
             	$answer->score = 0;
@@ -879,7 +881,7 @@ function languagelesson_save_question_options($question) {
             $answer->timecreated   = $timenow;
             $answer->answer = get_string("false", "quiz");
             if ((int)$question->correctanswer == 0) {
-                $answer->score = 1;
+                $answer->score = get_field('languagelesson', 'defaultpoints', 'id', $question->lessonid);
                 $answer->jumpto = LL_NEXTPAGE;
             } else {
             	$answer->score = 0;
@@ -912,7 +914,8 @@ function languagelesson_save_question_options($question) {
                     $answer->pageid   = $question->id;
                     $answer->timecreated   = $timenow;
 					// ARGHBL NEED TO HANDLE SPECIFIC SCORES
-					$answer->score = $question->fraction[$key];
+					$answer->score = $question->fraction[$key] * get_field('languagelesson', 'defaultpoints', 'id',
+							$question->lessonid);
 					if ($answer->score > 0) { $answer->jumpto = LL_NEXTPAGE; }
                     $answer->answer   = $dataanswer;
                     $answer->response = $question->feedback[$key];
@@ -1001,7 +1004,7 @@ function languagelesson_save_question_options($question) {
         	$answer->pageid = $question->id;
         	$answer->timecreated = $timenow;
         	$answer->jumpto = LL_NEXTPAGE;
-        	$answer->score = 1;
+        	$answer->score = get_field('languagelesson', 'defaultpoints', 'id', $question->lessonid);
         	
         	if (!insert_record("languagelesson_answers", $answer)) {
         		$result->error = "Could not insert languagelesson essay/audio/video answer!";

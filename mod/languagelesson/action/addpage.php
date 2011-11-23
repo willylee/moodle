@@ -102,6 +102,9 @@
         use_html_editor("contents");
     }
     echo "</td></tr>\n";
+	// for brevity, store this lesson's defaultpoints value here
+	$defaultpoints = get_field('languagelesson', 'defaultpoints', 'id', $lesson->id);
+	// now print out answer/feedback/score fields
     switch ($qtype) {
         case LL_TRUEFALSE :
             for ($i = 0; $i < 2; $i++) {
@@ -126,7 +129,7 @@
 						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '0')."\" size=\"5\" />";
                 } else {
                     echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
-						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '1')."\" size=\"5\" />";
+						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : $defaultpoints)."\" size=\"5\" />";
                 }
                 echo "</td></tr>\n";
             }
@@ -138,7 +141,7 @@
                 choose_from_menu($jump, "jumpto[0]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
                 helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 				echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
-					."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '1')."\" size=\"5\" />";
+					."value=\"".((isset($data->score[$i])) ? $data->score[$i] : $defaultpoints)."\" size=\"5\" />";
                 echo "</td></tr>\n";
             break;
         case LL_MATCHING :
@@ -156,7 +159,7 @@
                     choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
                     helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
 					echo get_string("correctanswerscore", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
-						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '1')."\" size=\"5\" />";
+						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : $defaultpoints)."\" size=\"5\" />";
                     echo "</td></tr>\n";
                 //} elseif ($i == 1) {
                 } elseif ($i == $maxanswers+1) {
@@ -207,7 +210,7 @@
 						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '0')."\" size=\"5\" />";
                 } else {
 					echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
-						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '1')."\" size=\"5\" />";
+						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : $defaultpoints)."\" size=\"5\" />";
                 }
                 echo "</td></tr>\n";
             }
@@ -232,7 +235,7 @@
 				echo "<tr><td>";
 				echo get_string("score", "languagelesson")." $iplus1: "
 					."<input type=\"text\" name=\"score[$i]\" size=\"5\" "
-					."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '1')."\" />";
+					."value=\"".((isset($data->score[$i])) ? $data->score[$i] : $defaultpoints)."\" />";
 				echo "</td></tr>";
 			}
 

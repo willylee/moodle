@@ -404,11 +404,9 @@ class qformat_giftplus extends qformat_default {
         if ($description) {
             $question->qtype = LL_DESCRIPTION;
         }
-    /////ADDED IN/////
 		elseif ($cloze) {
 			$question->qtype = LL_CLOZE;
 		}
-    //////////////////
         elseif ($answertext == '') {
             $question->qtype = LL_ESSAY;
         }
@@ -423,8 +421,6 @@ class qformat_giftplus extends qformat_default {
                 && strpos($answertext, "->") !== false) {
             // only Matching contains both = and ->
             $question->qtype = LL_MATCHING;
-        
-    /////ADDED IN/////
         
       ///question types///
         } elseif ($answertext == 'AUDIO') {
@@ -449,8 +445,6 @@ class qformat_giftplus extends qformat_default {
         } elseif ($answertext == 'ENDCLUSTER') {
         	$question->qtype = LL_ENDOFCLUSTER;
         
-    //////////////////
-
         } else { // either TRUEFALSE or SHORTANSWER
     
             // TRUEFALSE question check
@@ -474,6 +468,11 @@ class qformat_giftplus extends qformat_default {
             error( $giftqtypenotset . ' ' . $text );
             return false;
         }
+
+
+
+		////////////////////////////////////////
+		// HANDLE ANSWERS
 
         switch ($question->qtype) {
             case LL_DESCRIPTION:

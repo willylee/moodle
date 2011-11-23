@@ -8,7 +8,7 @@
  * @package languagelesson
  **/
 
-$module->version  = 2011102601;  // The current module version (Date: YYYYMMDDXX)
+$module->version  = 2011112301;  // The current module version (Date: YYYYMMDDXX)
 $module->requires = 2007101509;  // Requires this Moodle version
 $module->cron     = 0;           // Period for cron to check this module (secs)
 
