@@ -964,11 +964,12 @@
     } else if ($page->qtype == LL_AUDIO || $page->qtype == LL_VIDEO) {
 		// if it's an audio or video, force showing same page again to confirm successful submission
 		redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id&amp;pageid=$thispageid"
-				 .(($nopageid) ? '' : "&amp;nextpageid=$newpageid"));
+				 .(($nopageid) ? '' : "&amp;nextpageid=$newpageid&amp;submitted=1"));
 	} else {
         // Don't display feedback
         redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id"
-				 . (($nopageid) ? '' : "&amp;pageid=$newpageid"));
+				 . (($nopageid) ? '' : "&amp;pageid=$newpageid")
+				 . (($newpageid == $page->id) ? "&amp;submitted=1" : ''));
 	}
     
 ///////////////////////////////////////////////////////////

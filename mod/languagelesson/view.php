@@ -11,7 +11,6 @@
 
 
 
-
 ///////////////////////////////////////////////////////////
 // BASIC SETUP
 ///////////////////////////////////////////////////////////
@@ -37,6 +36,9 @@
 
 	/// check if reviewing
 	$reviewing = optional_param('reviewing', 0, PARAM_INT);
+
+	/// check if redisplaying a just-submitted page
+	$submitted = optional_param('submitted', 0, PARAM_INT);
 
 	/// fetch feedback variables, if they exist
 	$showfeedback = optional_param('showfeedback', 0, PARAM_INT);
@@ -1421,8 +1423,9 @@
 				}
 				
 				// if showing feedback or attempts are locked or it's a submitted revlet page, print the continue button
-				if ($showfeedback || $nomoreattempts || $reviewing
-						|| (($page->qtype == LL_AUDIO || $page->qtype == LL_VIDEO) && $hassubmitted)) {
+				//if ($showfeedback || $nomoreattempts || $reviewing
+				//		|| (($page->qtype == LL_AUDIO || $page->qtype == LL_VIDEO) && $hassubmitted)) {
+				if ($submitted ||$showfeedback || $nomoreattempts || $reviewing) {
 					echo '<td>';
 					echo '<form id="continueform" action="view.php" method="get">';
 					echo '<input type="hidden" name="id" value="'.$cm->id.'" />';

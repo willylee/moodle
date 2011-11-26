@@ -54,7 +54,10 @@ function xmldb_languagelesson_upgrade($oldversion=0) {
 		
 	}
 	
-	if ($result && $oldversion < 2011071902 && !get_records('languagelesson_qtypes')) {
+	// run the qtype population code--NO MATTER THE CURRENT VERSION--if the table is empty
+	// This is done because on installation, the table is not populated, so it needs to
+	// force being populated
+	if ($result && !get_records('languagelesson_qtypes')) {
 		
     /// new values for question types
         $value_map = array( 1 => 4,   // LESSON_SHORTANSWER
@@ -342,13 +345,15 @@ function xmldb_languagelesson_upgrade($oldversion=0) {
 	}
 
 
-	// add the "defaultpoints" field to languagelesson to enable setting default number of points per question in an instance
+	// add the "defaultpoints" field to languagelesson and languagelesson_default to enable setting default number of points per question in an instance
 	if ($result && $oldversion < 2011112301) {
 		$table = new XMLDBTable('languagelesson');
+		$table2 = new XMLDBTable('languagelesson_default');
 		$field = new XMLDBField('defaultpoints');
 		$field->setAttributes(XMLDB_TYPE_INTEGER, '3', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, 1, 'conditions');
 
 		$result = add_field($table, $field);
+		if ($result) { $result = add_field($table2, $field); }
 	}
 
 

@@ -14,6 +14,8 @@
 
 ::sa::Type 'nazareth'{=nazareth=%75%nazarene=%50%nazar}
 
+::cl::This is a {cloze} (cloze). It has a {=drop-down,WRONG}.
+
 ::ess::Write an essay {}
 
 ::aud::Record an audio {AUDIO}
