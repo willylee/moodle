@@ -639,12 +639,13 @@ function languagelesson_print_add_links($cmid, $prevpageid, $return = false) {
 function languagelesson_get_qtype_name($qtype) {
     global $LL_QUESTION_TYPE;
     switch ($qtype) {
-        case LL_ESSAY :
-        case LL_SHORTANSWER :
-        case LL_MULTICHOICE :
-        case LL_MATCHING :
-        case LL_TRUEFALSE :
+        case LL_ESSAY:
+        case LL_SHORTANSWER:
+        case LL_MULTICHOICE:
+        case LL_MATCHING:
+        case LL_TRUEFALSE:
         //case LL_NUMERICAL :
+		case LL_CLOZE:
         case LL_AUDIO:
         case LL_VIDEO:
             return $LL_QUESTION_TYPE[$qtype];

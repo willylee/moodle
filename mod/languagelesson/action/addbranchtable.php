@@ -74,16 +74,21 @@
 		. ((isset($data->layout) && !($data->layout)) ? '' : "checked=\"checked\"") . " />";
     echo get_string("arrangebuttonshorizontally", "languagelesson")."\n";
     echo "</div>\n";
-    echo "</td></tr>\n";
+    echo "</td></tr></table>\n";
+	?>
+
+    <table class="generalbox boxaligncenter" cellpadding="5" border="1">
+	<?php
     for ($i = 0; $i < $maxanswers; $i++) {
         $iplus1 = $i + 1;
-        echo "<tr><td><strong>".get_string("description", "languagelesson")." $iplus1:</strong><br />\n";
-        print_textarea(false, 10, 70, 630, 300, "answer[$i]", ((isset($data->answer[$i])) ? $data->answer[$i] : '')); 
-        echo "</td></tr>\n";
-        echo "<tr><td><strong>".get_string("jump", "languagelesson")." $iplus1:</strong> \n";
+        echo '<tr><td><table><tr><td class="answerrow_cell">';
+		echo "<b>".get_string("description", "languagelesson")." $iplus1:</b><br />\n";
+        print_textarea(false, 1, 40, 0, 0, "answer[$i]", ((isset($data->answer[$i])) ? $data->answer[$i] : '')); 
+		echo '</td><td class="answerrow_cell">';
+        echo "<b>".get_string("jump", "languagelesson")." $iplus1:</b><br />\n";
 		choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
         helpbutton("jumpto", get_string("jump", "languagelesson"), "lesson");
-        echo "</td></tr>\n";
+        echo "</td></tr></table></td></tr>\n";
     }
     
     // close table and form

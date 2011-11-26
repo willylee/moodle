@@ -97,13 +97,15 @@
     <?php
     echo "<tr><td><b>";
     echo get_string("pagecontents", "languagelesson").":</b><br />\n";
-	echo '<div style="margin-left:auto; margin-right:auto;">';
-    print_textarea($usehtmleditor, 25,120, 630, 400, "contents", ((isset($data->contents)) ? $data->contents : ''));
+    print_textarea($usehtmleditor, 20, 70, 630, 400, "contents", ((isset($data->contents)) ? $data->contents : ''));
     if ($usehtmleditor) {
         use_html_editor("contents");
     }
-	echo '</div>';
-    echo "</td></tr>\n";
+    echo "</td></tr></table>\n";
+	?>
+
+    <table cellpadding="5" class="generalbox boxaligncenter" border="1">
+	<?php
 	// for brevity, store this lesson's defaultpoints value here
 	$defaultpoints = get_field('languagelesson', 'defaultpoints', 'id', $lesson->id);
 	// now print out answer/feedback/score fields
@@ -134,50 +136,65 @@
         case LL_AUDIO :
         case LL_VIDEO :
         case LL_ESSAY :
-                echo "<tr><td><b>".get_string("jump", "languagelesson").":</b> \n";
-                choose_from_menu($jump, "jumpto[0]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
+                echo "<tr><td><table>";
+				echo '<tr><td class="answerrow_cell"><b>'.get_string("score", "languagelesson").":</b><br />"
+				."<input type=\"text\" name=\"score[0]\""
+					."value=\"".((isset($data->score[0])) ? $data->score[0] : $defaultpoints)."\" size=\"5\" />";
+				echo '</td><td class="answerrow_cell"><b>'.get_string("jump", "languagelesson").":</b><br />\n";
+                choose_from_menu($jump, "jumpto[0]", ((isset($data->jumpto[0])) ? $data->jumpto[0] : LL_NEXTPAGE), "");
                 helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-				echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
-					."value=\"".((isset($data->score[$i])) ? $data->score[$i] : $defaultpoints)."\" size=\"5\" />";
-                echo "</td></tr>\n";
+                echo "</td></tr></table></td></tr>\n";
             break;
         case LL_MATCHING :
             for ($i = 0; $i < $maxanswers+2; $i++) {
-                $icorrected = $i + 1;
-                //if ($i == 0) {
+                $iplus1 = $i + 1;
                 if ($i == $maxanswers) {
-                	echo "<tr><td style=\"height:25px;\"></td></tr>";
-                
-                    echo "<tr><td><b>".get_string("correctresponse", "languagelesson").":</b><br />\n";
-                    print_textarea(false, 6, 70, 630, 300, "answer[$i]", ((isset($data->answer[$i]) ? $data->answer[$i] : '')));
-                    echo "</td></tr>\n";
-                    
-                    echo "<tr><td><b>".get_string("correctanswerjump", "languagelesson").":</b> \n";
+					// insert a visual break between the answers and the feedback areas
+					echo '<tr><td></td></tr>';
+
+                	echo "<tr><td><table>";
+					// print the correct feedback area
+                    echo '<tr><td class="answerrow_cell"><b>'.get_string("correctresponse", "languagelesson").":</b><br />\n";
+                    print_textarea(false, 1, 35, 0, 0, "answer[$i]", ((isset($data->answer[$i]) ? $data->answer[$i] : '')));
+                    echo '</td><td class="answerrow_cell">';
+					// print the score area
+					echo '<b>'.get_string("correctanswerscore", "languagelesson").":</b><br />";
+					echo "<input type=\"text\" name=\"score[$i]\" value=\"".((isset($data->score[$i])) ? $data->score[$i] :
+							$defaultpoints)."\" size=\"5\" />";
+					echo '</td><td class="answerrow_cell">';
+                    // print the jump area
+                    echo "<b>".get_string("correctanswerjump", "languagelesson").":</b><br />\n";
                     choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
                     helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-					echo get_string("correctanswerscore", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
-						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : $defaultpoints)."\" size=\"5\" />";
-                    echo "</td></tr>\n";
-                //} elseif ($i == 1) {
+                    echo "</td></tr></table>\n";
+					echo '</td></tr>';
                 } elseif ($i == $maxanswers+1) {
-                    echo "<tr><td><b>".get_string("wrongresponse", "languagelesson").":</b><br />\n";
-                    print_textarea(false, 6, 70, 630, 300, "answer[$i]", ((isset($data->answer[$i]) ? $data->answer[$i] : '')));
-                    echo "</td></tr>\n";
-                    
-                    echo "<tr><td><b>".get_string("wronganswerjump", "languagelesson").":</b> \n";
+                    echo "<tr><td><table>";
+					// print wrong feedback area
+					echo '<tr><td class="answerrow_cell"><b>'.get_string("wrongresponse", "languagelesson").":</b><br />\n";
+                    print_textarea(false, 1, 35, 0, 0, "answer[$i]", ((isset($data->answer[$i]) ? $data->answer[$i] : '')));
+                    echo '</td><td class="answerrow_cell">';
+                    // print score area
+					echo '<b>'.get_string("wronganswerscore", "languagelesson").":</b><br />";
+					echo "<input type=\"text\" name=\"score[$i]\" value=\"".((isset($data->score[$i])) ? $data->score[$i] :
+							'0')."\" size=\"5\" />";
+					echo '</td><td class="answerrow_cell">';
+					// print wrong answer jump
+                    echo "<b>".get_string("wronganswerjump", "languagelesson").":</b><br />\n";
                     choose_from_menu($jump, "jumpto[$i]", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : 0), "");
                     helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-					echo get_string("wronganswerscore", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\""
-						."value=\"".((isset($data->score[$i])) ? $data->score[$i] : '0')."\" size=\"5\" />";
-                    echo "</td></tr>\n";
+                    echo "</td></tr></table>";
+					echo '</td></tr>';
                     
                 } else {                                                
-                    echo "<tr><td><b>".get_string("answer", "languagelesson")." $icorrected:</b><br />\n";
-                    print_textarea(false, 6, 70, 630, 300, "answer[$i]", ((isset($data->answer[$i]) ? $data->answer[$i] : '')));
-                    echo "</td></tr>\n";
-                    echo "<tr><td><b>".get_string("matchesanswer", "languagelesson")." $icorrected:</b><br />\n";
-                    print_textarea(false, 6, 70, 630, 300, "response[$i]", ((isset($data->response[$i]) ? $data->response[$i] : '')));
-                    echo "</td></tr>\n";
+                    echo "<tr><td><table>";
+					echo '<tr><td class="answerrow_cell"><b>'.get_string("answer", "languagelesson")." $iplus1:</b><br />\n";
+                    print_textarea(false, 1, 40, 0, 0, "answer[$i]", ((isset($data->answer[$i]) ? $data->answer[$i] : '')));
+                    echo '</td><td class="answerrow_cell">';
+                    echo "<b>".get_string("matchesanswer", "languagelesson")." $iplus1:</b><br />\n";
+                    print_textarea(false, 1, 40, 0, 0, "response[$i]", ((isset($data->response[$i]) ? $data->response[$i] : '')));
+                    echo "</td></tr></table>";
+					echo '</td></tr>';
                 }
             }
             break;
@@ -223,49 +240,59 @@
 				$iplus1 = $i + 1;
 				echo "<tr><td>";
 
+				echo '<table><tr><td class="answerrow_cell">';
+				// print the answer input area
+				echo "<b>".get_string("answer", "languagelesson")." $iplus1:</b><br />\n";
+				print_textarea(false, 1, 30, 0, 0, "answer[$i]", ((isset($data->answer[$i])
+						? $data->answer[$i] : '')));
+				echo '</td><td class="answerrow_cell">';
 				// print the drop-down checkbox
 				$a->number = $iplus1;
 				echo "<label for=\"dropdown[$i]\">".get_string('usedropdown', 'languagelesson', $a)."</label>";
 				echo "<input type=\"checkbox\" id=\"dropdown[$i]\" name=\"dropdown[$i]\" value=\"1\" />";
-				echo "</td></tr>";
-
-				// print the actual answer input area
-				echo "<tr><td><b>".get_string("answer", "languagelesson")." $iplus1:</b><br />\n";
-				print_textarea(false, 6, 70, 630, 300, "answer[$i]", ((isset($data->answer[$i]) ? $data->answer[$i] : '')));
-				echo "</td></tr>\n";
-
+				echo "</td><td class=\"answerrow_cell\">";
 				// print the score input
-				echo "<tr><td>";
-				echo get_string("score", "languagelesson")." $iplus1: "
+				echo '<b>'.get_string("score", "languagelesson")." $iplus1:</b><br />"
 					."<input type=\"text\" name=\"score[$i]\" size=\"5\" "
 					."value=\"".((isset($data->score[$i])) ? $data->score[$i] : $defaultpoints)."\" />";
-				echo "</td></tr>";
+				echo "</td></tr></table>";
 			}
 
+			// insert a visual break between answers and feedback areas
+			echo '<tr><td></td></tr>';
 
-			echo "<tr><td style=\"height:25px;\"></td></tr>";
-		
-			echo "<tr><td><b>".get_string("correctresponse", "languagelesson").":</b><br />\n";
-			print_textarea(false, 6, 70, 630, 300, "correctresponse", ((isset($data->correctresponse) ? $data->correctresponse : '')));
+			echo '<tr><td><table>';
+			// print the correct feedback area
+			echo "<tr><td class=\"answerrow_cell\"><b>".get_string("correctresponse", "languagelesson").":</b><br />\n";
+			print_textarea(false, 1, 50, 0, 0, "correctresponse", ((isset($data->correctresponse) ? $data->correctresponse : '')));
 			echo "<input type=\"hidden\" name=\"correctresponsescore\" value=\"1\" />";
-			echo "</td></tr>\n";
-			
-			echo "<tr><td><b>".get_string("correctanswerjump", "languagelesson").":</b> \n";
+			echo "</td><td class=\"answerrow_cell\">\n";
+			// print the jump area
+			echo "<b>".get_string("correctanswerjump", "languagelesson").":</b><br />\n";
 			choose_from_menu($jump, "correctanswerjump", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : LL_NEXTPAGE), "");
 			helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-			echo "</td></tr>\n";
+			echo "</td></tr></table>\n";
+
+			echo '</td></tr>';
 
 			$i++;
 
-			echo "<tr><td><b>".get_string("wrongresponse", "languagelesson").":</b><br />\n";
-			print_textarea(false, 6, 70, 630, 300, "wrongresponse", ((isset($data->wrongresponse) ? $data->wrongresponse : '')));
+			echo '<tr><td><table>';
+			// print the wrong feedback area
+			echo "<tr><td class=\"answerrow_cell\"><b>".get_string("wrongresponse", "languagelesson").":</b><br />\n";
+			print_textarea(false, 1, 50, 0, 0, "wrongresponse", ((isset($data->wrongresponse) ? $data->wrongresponse : '')));
 			echo "<input type=\"hidden\" name=\"wrongresponsescore\" value=\"0\" />";
-			echo "</td></tr>\n";
 			
-			echo "<tr><td><b>".get_string("wronganswerjump", "languagelesson").":</b> \n";
+			echo "</td><td class=\"answerrow_cell\">\n";
+			// print the jump area
+			echo "<b>".get_string("wronganswerjump", "languagelesson").":</b><br />\n";
 			choose_from_menu($jump, "wronganswerjump", ((isset($data->jumpto[$i])) ? $data->jumpto[$i] : 0), "");
 			helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-			echo "</td></tr>\n";
+
+			echo "</td></tr></table>\n";
+
+			echo '</tr></table>';
+
 			break;
 
 		default :
@@ -280,7 +307,10 @@
 			actionInput.value = action;
 		}
 	</script>
-	<?php if ($qtype != LL_TRUEFALSE) { ?>
+	<?php if ($qtype != LL_TRUEFALSE
+				&& $qtype != LL_AUDIO
+				&& $qtype != LL_VIDEO
+				&& $qtype != LL_ESSAY) { ?>
 	<input type="submit" onclick="setAction('addpage');" value="<?php print_string('add4moreanswerfields', 'languagelesson'); ?>" />
 	<?php } ?>
 	<br /><br />

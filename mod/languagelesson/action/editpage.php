@@ -135,7 +135,11 @@
 	if ($usehtmleditor) {
 		use_html_editor("contents");
 	}
-	echo "</td></tr>\n";
+	echo "</td></tr></table>\n";
+	?>
+
+	<table cellpadding="5" class="generalbox" border="1">
+	<?php
 	$n = 0;
 	/// switch to handle structural pages info
 	switch ($page->qtype) {
@@ -151,25 +155,27 @@
 			echo get_string("arrangebuttonshorizontally", "languagelesson")."\n";
 			echo "</center></td></tr>\n";
 			echo "<tr><td><b>".get_string("branchtable", "languagelesson")."</b> \n";
+			echo "</td></tr>\n";
 			break;
 		case LL_CLUSTER :
 			echo "<input type=\"hidden\" name=\"qtype\" value=\"$page->qtype\" />\n";
 			echo "<tr><td><b>".get_string("clustertitle", "languagelesson")."</b> \n";
+			echo "</td></tr>\n";
 			break;                
 		case LL_ENDOFCLUSTER :
 			echo "<input type=\"hidden\" name=\"qtype\" value=\"$page->qtype\" />\n";
 			echo "<tr><td><b>".get_string("endofclustertitle", "languagelesson")."</b> \n";
+			echo "</td></tr>\n";
 			break;                            
 		case LL_ENDOFBRANCH :
 			echo "<input type=\"hidden\" name=\"qtype\" value=\"$page->qtype\" />\n";
 			echo "<tr><td><b>".get_string("endofbranch", "languagelesson")."</b> \n";
+			echo "</td></tr>\n";
 			break;
 		default :
-			echo "<tr><td>";
-		break;             
+			break;             
 	}
 
-	echo "</td></tr>\n";
 
 
 ////////////////////////////////////////////////
@@ -191,8 +197,8 @@
 	// Boxes for pre-existing answers
 	if ($answers = get_records("languagelesson_answers", "pageid", $page->id, "id")) {
 
-		// if this is a CLOZE type, feedbacks are stored as their own answers, so init the feedbacks array
-		if ($page->qtype == LL_CLOZE) { $feedbacks = array(); }
+		// if this is a CLOZE or MATCHING type, feedbacks are stored as their own answers, so init the feedbacks array
+		if ($page->qtype == LL_CLOZE || $page->qtype == LL_MATCHING) { $feedbacks = array(); }
 
 		foreach ($answers as $answer) {
 			// if the answer or response has been updated before adding new questions, we should print that instead, so check for it
@@ -210,39 +216,51 @@
 			// answer box
 			switch ($page->qtype) {
 				case LL_MATCHING:
-					if ($n == 0) {
-						echo "<tr><td><b><label for=\"edit-answer[$n]\">".get_string('correctresponse',
-								'languagelesson').":</label></b><br />\n";
-						print_textarea(false, 6, 70, 630, 300, "answer[$n]", $answer->answer);
-					} elseif ($n == 1) {
-						echo "<tr><td><b><label for=\"edit-answer[$n]\">".get_string('wrongresponse',
-								'languagelesson').":</label></b><br />\n";
-						print_textarea(false, 6, 70, 630, 300, "answer[$n]", $answer->answer);
+					// if the record has an answer field but does NOT have a response, it's a feedback, so save it 
+					if (isset($answer->answer) && !isset($answer->response)) {
+						$feedbacks[] = $answer;
+					// print actual matchings
 					} else {
 						$ncorrected = $n - 1;
-						echo "<tr><td><b><label for=\"edit-answer[$n]\">".get_string('answer', 'languagelesson')."
+						echo '<tr><td><table><tr><td class="answerrow_cell">';
+						echo "<b><label for=\"edit-answer[$n]\">".get_string('answer',
+							'languagelesson')." $ncorrected:</label></b><br />\n";
+						print_textarea(false, 1, 40, 0, 0, "answer[$n]", $answer->answer);
+						echo "</td><td class=\"answerrow_cell\">\n";
+						echo "<b><label for=\"edit-response[$n]\">".get_string('matchesanswer', 'languagelesson')."
 							$ncorrected:</label></b><br />\n";
-						print_textarea(false, 6, 70, 630, 300, "answer[$n]", $answer->answer);
+						print_textarea(false, 1, 40, 0, 0, "response[$n]", $answer->response);
+						echo '</td></tr></table>';
 						echo "</td></tr>\n";
-						echo "<tr><td><b><label for=\"edit-response[$n]\">".get_string('matchesanswer', 'languagelesson')."
-							$ncorrected:</label></b><br />\n";
-						print_textarea(false, 6, 70, 630, 300, "response[$n]", $answer->response);
 					}
-					echo "</td></tr>\n";
 					break;
+
 				case LL_TRUEFALSE:
 				case LL_MULTICHOICE:
 				case LL_SHORTANSWER:
 				//case LL_NUMERICAL:                    
-					echo "<tr><td><b><label for=\"edit-answer[$n]\">".get_string('answer', 'languagelesson')." $nplus1:</label></b><br
-						/>\n";
-					print_textarea(false, 6, 70, 630, 300, "answer[$n]", $answer->answer);
-					echo "</td></tr>\n";
-					echo "<tr><td><b><label for=\"edit-response[$n]\">".get_string('response', 'languagelesson')."
+					echo '<tr><td><table><tr><td class="answerrow_cell">';
+					// print the answer field
+					echo "<b><label for=\"edit-answer[$n]\">".get_string('answer', 'languagelesson')." $nplus1:</label></b><br
+							/>\n";
+					print_textarea(false, 1, 30, 0, 0, "answer[$n]", $answer->answer);
+					echo '</td><td class="answerrow_cell">';
+					// print the score field
+					echo '<b>'.get_string("score", "languagelesson")." $nplus1:</b><br /><input type=\"text\" name=\"score[$n]\"
+						value=\"$answer->score\" size=\"5\" />";
+					echo '</td><td class="answerrow_cell">';
+					// print the response field
+					echo "<b><label for=\"edit-response[$n]\">".get_string('response', 'languagelesson')."
 						$nplus1:</label></b><br />\n";
-					print_textarea(false, 6, 70, 630, 300, "response[$n]", $answer->response);
-					echo "</td></tr>\n";
+					print_textarea(false, 1, 30, 0, 0, "response[$n]", $answer->response);
+					echo '</td><td class="answerrow_cell">';
+					// print the jump field
+					echo "<b>".get_string("jump", "languagelesson")." $nplus1:</b> \n";
+					choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
+					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
+					echo "</td></tr></table></td></tr>";
 					break;
+
 				case LL_CLOZE:
 					// if this is a response (answer record with empty answer attribute), save it for later
 					if (empty($answer->answer)) {
@@ -251,97 +269,61 @@
 						// to increment the number of previous answers seen), so continue
 						continue 2; // continuing the outer-level foreach loop
 					}
+					echo '<tr><td><table><tr><td class="answerrow_cell">';
+					// print the answer box
+					echo "<b><label for=\"edit-answer[$n]\">".get_string('answer', 'languagelesson')." $nplus1:</label>
+							</b><br />";
+					// get rid of the ordering numeral at the start of the answer
+					$atext = explode('|', $answer->answer);
+					$atext = $atext[1];
+					print_textarea(false, 1, 30, 0, 0, "answer[$n]", $atext);
+					echo '</td><td class="answerrow_cell">';
 					// print the drop-down checkbox
-					echo "<tr><td>";
 					$a->number = $nplus1;
 					echo "<label for=\"dropdown[$n]\">".get_string('usedropdown', 'languagelesson', $a)."</label>";
 					echo "<input type=\"checkbox\" id=\"dropdown[$n]\" name=\"dropdown[$n]\" value=\"1\" ".($flags ?
 							'checked="yes"' : '') . " />";
-					echo "</td></tr>";
-					// print the answer box
-					echo "<tr><td><b><label for=\"edit-answer[$n]\">".get_string('answer', 'languagelesson')." $nplus1:</label></b><br
-						/>\n";
-					// get rid of the ordering numeral at the start of the answer
-					$atext = explode('|', $answer->answer);
-					$atext = $atext[1];
-					print_textarea(false, 6, 70, 630, 300, "answer[$n]", $atext);
-					echo "</td></tr>\n";
+					echo '</td><td class="answerrow_cell">';
+					// print the score field
+					echo '<b>'.get_string("score", "languagelesson")." $nplus1:</b><br />";
+					echo "<input type=\"text\" name=\"score[$n]\" value=\"$answer->score\" size=\"5\" />";
+					echo '</td></tr></table></td></tr>';
 					break;
+
+				case LL_AUDIO:
+				case LL_VIDEO:
+				case LL_ESSAY:
+					echo '<tr><td><table><tr><td class="answerrow_cell">';
+					// print score field
+					echo '<b>'.get_string("score", "languagelesson").":</b><br />";
+					echo "<input type=\"text\" name=\"score[$n]\" value=\"$answer->score\" size=\"5\" />";
+					echo '</td><td class="answerrow_cell">';
+					// print jump field
+					echo "<b>".get_string("jump", "languagelesson").":</b><br />\n";
+					choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
+					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
+					echo "</td></tr></table></td></tr>";
+					break;
+
 				case LL_BRANCHTABLE:
-					echo "<tr><td><b><label for=\"edit-answer[$n]\">".get_string("description", "languagelesson")."
+				case LL_ENDOFBRANCH:
+				case LL_CLUSTER:
+				case LL_ENDOFCLUSTER:
+					echo '<tr><td><table><tr><td class="answerrow_cell">';
+					echo "<b><label for=\"edit-answer[$n]\">".get_string("description", "languagelesson")."
 						$nplus1:</label></b><br />\n";
-					print_textarea(false, 10, 70, 630, 300, "answer[$n]", $answer->answer);
-					echo "</td></tr>\n";
+					print_textarea(false, 1, 40, 0, 0, "answer[$n]", $answer->answer);
+					echo '</td><td class="answerrow_cell">';
+					echo "<b>".get_string("jump", "languagelesson")." $nplus1:</b><br />\n";
+					choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
+					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
+					echo "</td></tr></table></td></tr>\n";
 					break;
 				default :
 					break;
 			}
 
-			//////////////////////////////////////////////// 
-			// answer jump
-			switch ($page->qtype) {
-				case LL_MATCHING :
-					if ($n == 2) {
-						echo "<tr><td><b>".get_string("correctanswerjump", "languagelesson").":</b> \n";
-						choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
-						helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-						echo get_string("correctanswerscore", "languagelesson").": <input type=\"text\" name=\"score[$n]\"
-							value=\"$answer->score\" size=\"5\" />";
-						echo "</td></tr>\n";
-					}
-					if ($n == 3) {
-						echo "<tr><td><b>".get_string("wronganswerjump", "languagelesson").":</b> \n";
-						choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
-						helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-						echo get_string("wronganswerscore", "languagelesson").": <input type=\"text\" name=\"score[$n]\"
-							value=\"$answer->score\" size=\"5\" />";
-						echo "</td></tr>\n";
-					}
-					//echo "</td></tr>\n";
-					break;
-				case LL_AUDIO:
-				case LL_VIDEO:
-				case LL_ESSAY :
-					echo "<tr><td><b>".get_string("jump", "languagelesson").":</b> \n";
-					choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
-					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-					echo get_string("score", "languagelesson").": <input type=\"text\" name=\"score[$n]\" value=\"$answer->score\"
-						size=\"5\" />";
-					echo "</td></tr>\n";
-					break;
-				case LL_TRUEFALSE:
-				case LL_MULTICHOICE:
-				case LL_SHORTANSWER:
-				//case LL_NUMERICAL:
-					echo "<tr><td><b>".get_string("jump", "languagelesson")." $nplus1:</b> \n";
-					choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
-					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-					echo get_string("score", "languagelesson")." $nplus1: <input type=\"text\" name=\"score[$n]\"
-						value=\"$answer->score\" size=\"5\" />";
-					echo "</td></tr>\n";
-					break;
-				case LL_BRANCHTABLE:
-				case LL_CLUSTER:
-				case LL_ENDOFCLUSTER:
-				case LL_ENDOFBRANCH:
-					echo "<tr><td><b>".get_string("jump", "languagelesson")." $nplus1:</b> \n";
-					choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
-					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-					echo "</td></tr>\n";
-					break;
-				case LL_CLOZE :
-					echo "<tr><td>";
-					echo get_string("score", "languagelesson")." $nplus1: <input type=\"text\" name=\"score[$n]\"
-						value=\"$answer->score\" size=\"5\" />";
-					echo "</td></tr>\n";
-					break;
-				default :
-					break;
-			}
 			$n++;
-			if ($page->qtype == LL_ESSAY) {
-				break; // only one answer for essays
-			}                
 		}
 	}
 
@@ -374,98 +356,63 @@
 			switch ($page->qtype) {
 				case LL_MATCHING:
 					$icorrected = $i - 1;
-					echo "<tr><td><b>".get_string("answer", "languagelesson")." $icorrected:</b><br />\n";
-					print_textarea(false, 6, 70, 630, 300, "answer[$i]");
-					echo "</td></tr>\n";
-					echo "<tr><td><b>".get_string("matchesanswer", "languagelesson")." $icorrected:</b><br />\n";
-					print_textarea(false, 6, 70, 630, 300, "response[$i]");
-					echo "</td></tr>\n";
+					echo "<tr><td><table>";
+					echo '<tr><td class="answerrow_cell"<b>'.get_string("answer", "languagelesson")." $icorrected:</b><br />\n";
+					print_textarea(false, 1, 40, 0, 0, "answer[$i]");
+					echo '</td><td class="answerrow_cell">';
+					echo "<b>".get_string("matchesanswer", "languagelesson")." $icorrected:</b><br />\n";
+					print_textarea(false, 1, 40, 0, 0, "response[$i]");
+					echo "</td></tr><table>";
+					echo '</td></tr>';
 					break;
 				case LL_CLOZE:
+					echo '<tr><td><table><tr><td class="answerrow_cell">';
+					// print the answer box
+					echo "<b>".get_string("answer", "languagelesson")." $iplus1:</b><br />\n";
+					print_textarea(false, 1, 30, 0, 0, "answer[$i]");
+					echo '</td><td class="answerrow_cell">';
 					// print the drop-down checkbox
-					echo "<tr><td>";
 					$a->number = $iplus1;
 					echo "<label for=\"dropdown[$i]\">".get_string('usedropdown', 'languagelesson', $a)."</label>";
 					echo "<input type=\"checkbox\" id=\"dropdown[$i]\" name=\"dropdown[$i]\" value=\"1\" />";
-					echo "</td></tr>";
-					// print the answer box
-					echo "<tr><td><b>".get_string("answer", "languagelesson")." $iplus1:</b><br />\n";
-					print_textarea(false, 6, 70, 630, 300, "answer[$i]");
-					echo "</td></tr>\n";
+					echo '</td><td class="answerrow_cell">';
+					// print the score field
+					echo '<b>'.get_string("score", "languagelesson")." $iplus1:</b><br />";
+					echo "<input type=\"text\" name=\"score[$i]\" value=\"$answer->score\" size=\"5\" />";
+					echo '</td></tr></table></td></tr>';
 					break;
 				case LL_TRUEFALSE:
 				case LL_MULTICHOICE:
 				case LL_SHORTANSWER:
 				//case LL_NUMERICAL:
-					echo "<tr><td><b>".get_string("answer", "languagelesson")." $iplus1:</b><br />\n";
-					print_textarea(false, 6, 70, 630, 300, "answer[$i]");
-					echo "</td></tr>\n";
-					echo "<tr><td><b>".get_string("response", "languagelesson")." $iplus1:</b><br />\n";
-					print_textarea(false, 6, 70, 630, 300, "response[$i]");
-					echo "</td></tr>\n";
+					echo '<tr><td><table><tr><td class="answerrow_cell">';
+					// print answer field
+					echo "<b>".get_string("answer", "languagelesson")." $iplus1:</b><br />\n";
+					print_textarea(false, 1, 30, 0, 0, "answer[$i]");
+					echo '</td><td class="answerrow_cell">';
+					// print score field
+					echo '<b>'.get_string("score", "languagelesson")." $iplus1:</b><br />";
+					echo "<input type=\"text\" name=\"score[$i]\" value=\"0\" size=\"5\" />";
+					echo '</td><td class="answerrow_cell">';
+					// print feedback field
+					echo "<b>".get_string("response", "languagelesson")." $iplus1:</b><br />\n";
+					print_textarea(false, 1, 30, 0, 0, "response[$i]");
+					echo '</td><td class="answerrow_cell">';
+					// print jump field
+					echo "<b>".get_string("jump", "languagelesson")." $iplus1:</b> \n";
+					choose_from_menu($jump, "jumpto[$i]", 0, "");
+					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
+					echo "</td></tr></table></td></tr>";
 					break;
 				case LL_BRANCHTABLE:
-					echo "<tr><td><b>".get_string("description", "languagelesson")." $iplus1:</b><br />\n";
-					print_textarea(false, 10, 70, 630, 300, "answer[$i]");
-					echo "</td></tr>\n";
-					break;
-				default :
-					break;
-			}
-			////////////////////////////////////////////////
-			// answer jump/score
-			switch ($page->qtype) {
-				case LL_AUDIO:
-				case LL_VIDEO:
-				case LL_ESSAY :
-					if ($i < 1) {
-						echo "<tr><td><b>".get_string("jump", "languagelesson").":</b> \n";
-						choose_from_menu($jump, "jumpto[$i]", 0, "");
-						helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-						echo get_string("score", "languagelesson").": <input type=\"text\" name=\"score[$i]\" value=\"$answer->score\"
-							size=\"5\" />";
-						echo "</td></tr>\n";
-					}
-					break;
-				case LL_MATCHING :
-					if ($i == 2) {
-						echo "<tr><td><b>".get_string("correctanswerjump", "languagelesson").":</b> \n";
-						choose_from_menu($jump, "jumpto[$i]", $answer->jumpto, "");
-						helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-						echo get_string("correctanswerscore", "languagelesson").": <input type=\"text\" name=\"score[$i]\"
-							value=\"$answer->score\" size=\"5\" />";
-						echo "</td></tr>\n";
-					}
-					if ($i == 3) {
-						echo "<tr><td><b>".get_string("wronganswerjump", "languagelesson").":</b> \n";
-						choose_from_menu($jump, "jumpto[$i]", $answer->jumpto, "");
-						helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-						echo get_string("wronganswerscore", "languagelesson").": <input type=\"text\" name=\"score[$i]\"
-							value=\"$answer->score\" size=\"5\" />";
-						echo "</td></tr>\n";
-					}
-					break;
-				case LL_CLOZE :
-					echo "<tr><td>";
-					echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\"
-						value=\"$answer->score\" size=\"5\" />";
-					echo "</td></tr>\n";
-					break;
-				case LL_TRUEFALSE:
-				case LL_MULTICHOICE:
-				case LL_SHORTANSWER:
-				//case LL_NUMERICAL:
-					echo "<tr><td><b>".get_string("jump", "languagelesson")." $iplus1:</b> \n";
+					echo '<tr><td><table><tr><td class="answerrow_cell">';
+					echo "<b>".get_string("description", "languagelesson")." $iplus1:</b><br />\n";
+					print_textarea(false, 1, 40, 0, 0, "answer[$i]");
+					echo '</td><td class="answerrow_cell">';
+					echo "<b>".get_string("jump", "languagelesson")." $iplus1:</b><br />\n";
 					choose_from_menu($jump, "jumpto[$i]", 0, "");
 					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-					echo get_string("score", "languagelesson")." $iplus1: <input type=\"text\" name=\"score[$i]\" value=\"0\" size=\"5\" />";
-					echo "</td></tr>\n";
-					break;
-				case LL_BRANCHTABLE :
-					echo "<tr><td><b>".get_string("jump", "languagelesson")." $iplus1:</b> \n";
-					choose_from_menu($jump, "jumpto[$i]", 0, "");
-					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-					echo "</td></tr>\n";
+					echo "</td></tr></table></td></tr>\n";
 					break;
 				default :
 					break;
@@ -492,26 +439,122 @@
 
 			// print an empty spacing row
 			echo '<tr><td></td></tr>';
+
+			echo '<tr><td><table><tr><td class="answerrow_cell">';
 			// print the correct response editor
-			echo "<tr><td><b><label for=\"edit-correctresponse\">".get_string('correctresponse', 'languagelesson')."
+			echo "<b><label for=\"edit-correctresponse\">".get_string('correctresponse', 'languagelesson')."
 				:</label></b><br />\n";
-			print_textarea(false, 6, 70, 630, 300, "correctresponse", $correctresponse);
+			print_textarea(false, 1, 50, 0, 0, "correctresponse", $correctresponse);
 			echo "<input type=\"hidden\" name=\"correctresponsescore\" value=\"1\" />";
-			echo "</td></tr>\n";
-			echo "<tr><td><b>".get_string("correctanswerjump", "languagelesson").":</b> \n";
+			echo '</td><td class="answerrow_cell">';
+			// print correct jump editor
+			echo "<b>".get_string("correctanswerjump", "languagelesson").":</b><br />\n";
 			choose_from_menu($jump, "correctanswerjump", $correctjump, "");
 			helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-			echo "</td></tr>\n";
+			echo "</td></tr></table></td></tr>";
+
+			echo '<tr><td><table><tr><td class="answerrow_cell">';
 			// print the wrong response editor
-			echo "<tr><td><b><label for=\"edit-wrongresponse\">".get_string('wrongresponse', 'languagelesson')."
+			echo "<b><label for=\"edit-wrongresponse\">".get_string('wrongresponse', 'languagelesson')."
 				:</label></b><br />\n";
-			print_textarea(false, 6, 70, 630, 300, "wrongresponse", $wrongresponse);
+			print_textarea(false, 1, 50, 0, 0, "wrongresponse", $wrongresponse);
 			echo "<input type=\"hidden\" name=\"correctresponsescore\" value=\"1\" />";
-			echo "</td></tr>\n";
-			echo "<tr><td><b>".get_string("wronganswerjump", "languagelesson").":</b> \n";
+			echo '</td><td class="answerrow_cell">';
+			// print wrong jump editor
+			echo "<b>".get_string("wronganswerjump", "languagelesson").":</b><br />\n";
 			choose_from_menu($jump, "wronganswerjump", $wrongjump, "");
 			helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-			echo "</td></tr>\n";
+			echo "</td></tr></table></td></tr>";
+		}
+
+		// if it's a MATCHING, print out customized feedback areas here
+		// TODO: merge this with the above CLOZE code, once MATCHING feedbacks look more like CLOZE feedbacks
+		if ($page->qtype == LL_MATCHING) {
+			// print empty spacing row
+			echo '<tr><td></td></tr>';
+
+			$correctfeedback = '';
+			$wrongfeedback = '';
+			$correctscore = get_field('languagelesson', 'defaultpoints', 'id', $answer->lessonid);
+			$wrongscore = 0;
+			$correctjump = LL_NEXTPAGE;
+			$wrongjump = 0;
+
+			switch(count($feedbacks)) {
+				case 2:
+					if ($feedbacks[0]->score > $feedbacks[1]->score) {
+						$correct = $feedbacks[0];
+						$wrong = $feedbacks[1];
+						$correctindex = count($answers) - 2;
+						$wrongindex = count($answers) - 1;
+					} else {
+						$correct = $feedbacks[1];
+						$wrong = $feedbacks[0];
+						$correctindex = count($answers) - 1;
+						$wrongindex = count($answers) - 2;
+					}
+					$correctfeedback = $correct->answer;
+					$wrongfeedback = $wrong->answer;
+					$correctscore = $correct->score;
+					$wrongscore = $wrong->score;
+					$correctjump = $correct->jumpto;
+					$wrongjump = $wrong->jumpto;
+					break;
+				case 1:
+					if ($feedbacks[0]->score) {
+						$correctfeedback = $feedbacks[0]->answer;
+						$correctscore = $feedbacks[0]->score;
+						$correctjump = $feedbacks[0]->jumpto;
+						$correctindex = count($answers) - 1;
+						$wrongindex = count($answers);
+					} else {
+						$wrongfeedback = $feedbacks[0]->answer;
+						$wrongscore = $feedbacks[0]->score;
+						$wrongjump = $feedbacks[0]->jumpto;
+						$correctindex = count($answers);
+						$wrongindex = count($answers) - 1;
+					}
+					break;
+				default:
+					$correctindex = count($answers);
+					$wrongindex = count($answers) + 1;
+					break;
+			}
+
+
+			// print correct response area
+			echo "<tr><td><table>";
+			echo '<tr><td class="answerrow_cell"><b>'."<label for=\"edit-answer[$correctindex]\">".get_string('correctresponse',
+					'languagelesson').":</label></b><br />\n";
+			print_textarea(false, 1, 35, 0, 0, "answer[$correctindex]", $correctfeedback);
+			echo '</td><td class="answerrow_cell">';
+			// print correct score field
+			echo '<b>'.get_string("correctanswerscore", "languagelesson").":<br /><input type=\"text\" name=\"score[$correctindex]\"
+				value=\"$correctscore\" size=\"5\" />";
+			echo '</td><td class="answerrow_cell">';
+			// print correct jump field
+			echo "<b>".get_string("correctanswerjump", "languagelesson").":</b><br />\n";
+			choose_from_menu($jump, "jumpto[$correctindex]", $correctjump, "");
+			helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
+			echo "</td></tr></table>\n";
+			echo '</td></tr>';
+
+			// print wrong response area
+			echo "<tr><td><table>";
+			echo "<tr><td class=\"answerrow_cell\"><b><label for=\"edit-answer[$wrongindex]\">".get_string('wrongresponse',
+					'languagelesson').":</label></b><br />\n";
+			print_textarea(false, 1, 35, 0, 0, "answer[$wrongindex]", $wrongfeedback);
+			echo '</td><td class="answerrow_cell">';
+			// print wrong score field
+			echo '<b>'.get_string("wronganswerscore", "languagelesson").":<br /><input type=\"text\" name=\"score[$wrongindex]\"
+				value=\"$wrongscore\" size=\"5\" />";
+			echo '</td><td class="answerrow_cell">';
+			// print wrong jump field
+			echo "<b>".get_string("wronganswerjump", "languagelesson").":</b><br />\n";
+			choose_from_menu($jump, "jumpto[$wrongindex]", $wrongjump, "");
+			helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
+			echo "</td></tr></table>\n";
+			echo '</td></tr>';
 		}
 	}
 	// close table and form
@@ -525,7 +568,10 @@
 			actionInput.value = action;
 		}
 	</script>
-	<?php if ($page->qtype != LL_TRUEFALSE) { ?>
+	<?php if ($page->qtype != LL_TRUEFALSE
+				&& $page->qtype != LL_AUDIO
+				&& $page->qtype != LL_VIDEO
+				&& $page->qtype != LL_ESSAY) { ?>
 	<input type="submit" onclick="setAction('editpage')" value="<?php print_string('add4moreanswerfields', 'languagelesson'); ?>" />
 	<?php } ?>
 	<br /><br />
