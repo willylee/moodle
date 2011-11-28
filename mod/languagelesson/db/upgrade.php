@@ -357,6 +357,75 @@ function xmldb_languagelesson_upgrade($oldversion=0) {
 	}
 
 
+	// add the languagelesson_branches table
+	if ($result && $oldversion < 2011112801) {
+		$table = new XMLDBTable('languagelesson_branches');
+
+		//fields
+		$id = new XMLDBField('id');
+		$id->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null, null, null);
+		$table->addField($id);
+
+		$lessonid = new XMLDBField('lessonid');
+		$lessonid->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, 0, 'id');
+		$table->addField($lessonid);
+
+		$parentid = new XMLDBField('parentid');
+		$parentid->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, 0, 'lessonid');
+		$table->addField($parentid);
+
+		$firstpage = new XMLDBField('firstpage');
+		$firstpage->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, 0, 'parentid');
+		$table->addField($firstpage);
+
+		$title = new XMLDBField('title');
+		$title->setAttributes(XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, null, '', 'firstpage');
+		$table->addField($title);
+
+		$timecreated = new XMLDBField('timecreated');
+		$timecreated->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, 0, 'title');
+		$table->addField($timecreated);
+
+		$timemodified = new XMLDBField('timemodified');
+		$timemodified->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, 0, 'timecreated');
+		$table->addField($timemodified);
+
+		//keys
+		$id = new XMLDBKey('id');
+		$id->setAttributes(XMLDB_KEY_PRIMARY, array('id'));
+		$table->addKey($id);
+		
+		$lessonid = new XMLDBKey('lessonid');
+		$lessonid->setAttributes(XMLDB_KEY_FOREIGN, array('lessonid'), "{$CFG->prefix}languagelesson", 'id');
+		$table->addKey($lessonid);
+
+		$parentid = new XMLDBKey('parentid');
+		$parentid->setAttributes(XMLDB_KEY_FOREIGN, array('parentid'), "{$CFG->prefix}languagelesson_pages", 'id');
+		$table->addKey($parentid);
+
+		$firstpage = new XMLDBKey('firstpage');
+		$firstpage->setAttributes(XMLDB_KEY_FOREIGN, array('firstpage'), "{$CFG->prefix}languagelesson_pages", 'id');
+		$table->addKey($firstpage);
+
+		$result = create_table($table);
+
+	}
+
+
+	// add the branchid field to languagelesson_pages and key it to languagelesson_branches
+	if ($result && $oldversion < 2011112802) {
+		$table = new XMLDBTable('languagelesson_pages');
+		$field = new XMLDBField('branchid');
+		$field->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, null, null, null, null, null, 'lessonid');
+		$key = new XMLDBKey('branchid');
+		$key->setAttributes(XMLDB_KEY_FOREIGN, array('branchid'), 'languagelesson_branches', 'id');
+
+		$result = add_field($table, $field);
+		if ($result) { $result = add_key($table, $key); }
+	}
+
+
+
 	return $result;
 }
 

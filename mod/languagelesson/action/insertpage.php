@@ -215,6 +215,29 @@
 			}
         }
     }
+
+	
+	// if we just inserted a branch table, handle creating branch records and ENDOFBRANCH page records here
+	if ($form->qtype == LL_BRANCHTABLE) {
+		
+		// create languagelesson_branch records
+		//   - one for each branch
+		//   - stores the pageid of the first page in the branch (that is, the one specified as the branch's jumpto in the submitted
+		//   data
+		//   - if submitted data just has the jumpto as NEXTPAGE (default setting), firstpage points to 0
+
+
+		// create the invisible ENDOFBRANCH page records
+		//   - for all except last one, nextpageid points to the parent branch table
+		//   - use placement of branch head n+1 to decide where EOB n goes
+
+
+		// update the languagelesson instance's ordering values, for certainty of accuracy
+		// languagelesson_update_ordering($lesson->id);
+
+
+	}
+
     
 	// Now that setting answers is done, update the languagelesson instance's calculated max grade
 	recalculate_maxgrade($lesson->id);
