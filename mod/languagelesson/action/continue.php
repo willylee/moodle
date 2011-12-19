@@ -125,7 +125,7 @@
 			// if the student had previously submitted an attempt on this question, and it has since been graded,
 			// mark this new submission as a resubmit
 			if ($prevAttempt = languagelesson_get_most_recent_attempt_on($page->id, $USER->id)) {
-				if (! $oldManAttempt = get_record('languagelesson_manattempts', 'attemptid', $prevAttempt->id)) {
+				if (! $oldManAttempt = get_record('languagelesson_manattempts', 'id', $prevAttempt->manattemptid)) {
 					error('Failed to fetch matching manual_attempt record for old attempt on this question!');
 				}
 				if ($oldManAttempt->graded && !$lesson->autograde) {
@@ -791,7 +791,6 @@
 			/// (NOTE that audio/video manual attempt records are handled in file uploading functions)
 				if ($isessayquestion) {
 				/// save the manual attempt record
-					$manualattempt->attemptid = $newattemptid;
 					$manualattempt->timeseen = time();
 					if (!$manattemptid = insert_record('languagelesson_manattempts', $manualattempt)) {
 						error("Continue: manual attempt not inserted.");

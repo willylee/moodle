@@ -255,126 +255,61 @@
 		
 		
 	//////////////////////////////////////////////////////
-	// HANDLE "YOU HAVE SEEN" PAGE
-	// @youhaveseen@
-	//////////////////////////////////////////////////////
-	
-	/// if they have NOT completed the lesson before, BUT they have recorded attempts,
-	/// show them the "You have seen more than one page of this lesson before, do you want
-	/// to start at the next page" message
-	/// ALSO, don't show this if the user is a teacher
-		if (!$hascompleted && $attempts && !has_capability('mod/languagelesson:manage', $context)) {
-			
-		/// find the page to jump to if the user continues their attempt
-			
-			/// pull the most recent attempt
-            $lastattempt = end($attempts);
-			/// then, since end forces $attempts' pointer to the last item, reset it to the first
-			reset($attempts);
-			
-			/// now pull the jumpto value of the most recent attempt's answer
-			$jumpto = get_field('languagelesson_answers', 'jumpto', 'id', $lastattempt->answerid);
-			/// and convert the jumpto to a proper page id
-			if ($jumpto == 0) {
-				// they got it wrong, so jump to that page
-				$lastpageseen = $lastattempt->pageid;
-			}
-			else if ($jumpto == LL_NEXTPAGE) {
-				// they got it right, so jump to the next page
-				if (!$lastpageseen = get_field('languagelesson_pages', 'nextpageid', 'id', 
-							$lastattempt->pageid)) {
-					// next page was 0, so go to end of lesson
-					$lastpageseen = LL_EOL;
-				}
-			} else {
-				// strange jumpto value, so just feed it straight in
-				$lastpageseen = $jumpto;
-			}
-				
-			/// now check the most recently-seen branch table, and if it was seen more
-			/// recently than the above attempt, jump to it instead
-			if ($recentBranchTable = languagelesson_get_last_branch_table_seen($lesson->id, $USER->id)) {
-				if ($recentBranchTable->timeseen > $lastattempt->timeseen) {
-					$lastpageseen = $recentBranchTable->pageid;
-				}
-			}
-			
-			
-		/// get the first page of the lesson
-            if (!$firstpageid = get_field('languagelesson_pages', 'id', 'lessonid', $lesson->id,
-                        'prevpageid', 0)) {
-                error('Navigation: first page not found');
-            }
-			
-		/// print the page header
-            languagelesson_print_header($cm, $course, $lesson);
-			
-		/// if the lesson was timed, give them the restart option as relevant
-            if ($lesson->timed) {
-            	
-				if ($lesson->type != LL_TYPE_TEST) {
-					print_simple_box('<p style="text-align:center;">'. get_string('leftduringtimed', 'languagelesson') .'</p>',
-							'center');
-                    echo '<div style="text-align:center;" class="lessonbutton standardbutton">'.
-                              '<a href="view.php?id='.$cm->id.'&amp;pageid='.$firstpageid.'&amp;startlastseen=no">'.
-                                get_string('continue', 'languagelesson').'</a></div>';
-                } else {
-                    print_simple_box_start('center');
-                    echo '<div style="text-align:center;">';
-                    echo get_string('leftduringtimednoretake', 'languagelesson');
-					echo '<br /><br /><div class="lessonbutton standardbutton"><a href="../../course/view.php?id='. $course->id .'">'.
-						get_string('returntocourse', 'languagelesson') .'</a></div>';
-                    echo '</div>';
-                    print_simple_box_end();
-                }   
-            }
-			
-			
-		/// if it wasn't, display the "You have seen..." page
-			else {
-                print_simple_box("<p style=\"text-align:center;\">".get_string('youhaveseen','languagelesson').'</p>',
-                        "center");
-                
-                echo '<div style="text-align:center;">';
-                echo '<span class="lessonbutton standardbutton">'.
-                        '<a href="view.php?id='.$cm->id.'&amp;pageid='.$lastpageseen.'&amp;startlastseen=yes">'.
-                        get_string('yes').'</a></span>&nbsp;&nbsp;&nbsp;';
-                echo '<span class="lessonbutton standardbutton">'.
-                        '<a href="view.php?id='.$cm->id.'&amp;pageid='.$firstpageid.'&amp;startlastseen=no">'.
-                        get_string('no').'</a></div>';
-                echo '</span>';
-            }
-			
-			
-		/// print the footer and quit
-            print_footer($course);
-            exit();
-        }
-	
-	// </handle "You have seen" page>
-	//////////////////////////////////////////////////////
-        
-		
-		
-		
-		
-	//////////////////////////////////////////////////////
 	// HANDLE "OLD GRADE" PAGE
 	// @oldgrade@
 	//////////////////////////////////////////////////////
 		
+		// display the "Your current grade is" landing page if it's a graded lesson with attempts recorded, and being viewed by a
+		// student
 		if ($lesson->type != LL_TYPE_PRACTICE
-			&& $hascompleted) {
+			&& ($hascompleted || $attempts)
+			&& !has_capability('mod/languagelesson:manage', $context)) {
 			
 			$grade = get_record('languagelesson_grades', 'lessonid', $lesson->id, 'userid', $USER->id);
 			
 			languagelesson_print_header($cm, $course, $lesson, 'view');
 			print_simple_box_start('center');
 			echo "<div style=\"text-align:center;\">";
+
+			// if the lesson is incomplete, pull the jumpto value for the most recent attempt
+			if (! $hascompleted) {
+				// pull the most recent attempt
+				$lastattempt = end($attempts);
+				// then, since end forces $attempts' pointer to the last item, reset it to the first
+				reset($attempts);
+				
+				// now pull the jumpto value of the most recent attempt's answer
+				$jumpto = get_field('languagelesson_answers', 'jumpto', 'id', $lastattempt->answerid);
+				// and convert the jumpto to a proper page id
+				if ($jumpto == 0) {
+					// they got it wrong, so jump to that page
+					$lastpageseen = $lastattempt->pageid;
+				}
+				else if ($jumpto == LL_NEXTPAGE) {
+					// they got it right, so jump to the next page
+					if (!$lastpageseen = get_field('languagelesson_pages', 'nextpageid', 'id', 
+								$lastattempt->pageid)) {
+						// next page was 0, so go to end of lesson
+						$lastpageseen = LL_EOL;
+					}
+				} else {
+					// strange jumpto value, so just feed it straight in
+					$lastpageseen = $jumpto;
+				}
+					
+				// now check the most recently-seen branch table, and if it was seen more
+				// recently than the above attempt, jump to it instead
+				if ($recentBranchTable = languagelesson_get_last_branch_table_seen($lesson->id, $USER->id)) {
+					if ($recentBranchTable->timeseen > $lastattempt->timeseen) {
+						$lastpageseen = $recentBranchTable->pageid;
+					}
+				}
+			}
 			
-			print_heading(get_string('oldgradeheader', 'languagelesson'));
+			// print the appropriate page heading
+			print_heading(get_string( (($hascompleted) ? 'oldgradeheader' : 'oldgradeincomplete'), 'languagelesson'));
 			
-		/// pull the ID of the first page in the lesson's order
+			// pull the ID of the first page in the lesson's order
 			$firstpageID = get_field_select('languagelesson_pages', 'id', "lessonid = $lesson->id
 																			and prevpageid = 0");
 			
@@ -388,15 +323,18 @@
 				}
 			}
 			
-			if ($lesson->type == LL_TYPE_ASSIGNMENT) {
-				echo get_string('oldgradeassignmentmessage', 'languagelesson');
-				$buttontext = get_string('oldgradeassignmentbutton', 'languagelesson');
-			} else {
-				echo get_string('oldgradetestmessage', 'languagelesson');
-				$buttontext = get_string('oldgradetestbutton', 'languagelesson');
+			// print out the default "enter lesson" message if no other message is to be printed
+			if ($hascompleted && !$lesson->timed) {
+				if ($lesson->type == LL_TYPE_ASSIGNMENT) {
+					echo get_string('oldgradeassignmentmessage', 'languagelesson');
+					$buttontext = get_string('oldgradeassignmentbutton', 'languagelesson');
+				} else {
+					echo get_string('oldgradetestmessage', 'languagelesson');
+					$buttontext = get_string('oldgradetestbutton', 'languagelesson');
+				}
 			}
 			
-		/// check if feedback has been posted; if so, tell student it has
+			// check if feedback has been posted; if so, tell student it has
 			if ($feedbacks = get_records_select('languagelesson_feedback', "lessonid=$lesson->id and userid=$USER->id")) {
 				
 				echo '<br /><br /><br />';
@@ -404,7 +342,7 @@
 				//echo '<div>';
 				echo get_string('oldgradeyouhavefeedback', 'languagelesson');
 				
-			/// build the list of which pages have feedback posted
+				// build the list of which pages have feedback posted
 				$distinctpageIDs = array();
 				foreach ($feedbacks as $feedback) {
 					if (!in_array($feedback->pageid, $distinctpageIDs)) {
@@ -412,7 +350,7 @@
 					}
 				}
 				
-			/// then use these to print out links to them
+				// then use these to print out links to them
 				foreach ($distinctpageIDs as $pid) {
 					$thispage = get_record('languagelesson_pages', 'id', $pid);
 					echo "<a
@@ -424,10 +362,41 @@
 				//echo '</div>';
 				
 			}
+
+
+			// if the lesson was timed, give them the restart option as relevant
+            if ($lesson->timed) {
+				if ($lesson->type != LL_TYPE_TEST) {
+					print_simple_box('<p style="text-align:center;">'. get_string('leftduringtimed', 'languagelesson') .'</p>',
+							'center');
+                    echo '<div style="text-align:center;" class="lessonbutton standardbutton">'.
+                              '<a href="view.php?id='.$cm->id.'&amp;pageid='.$firstpageid.'&amp;startlastseen=no">'.
+                                get_string('continue', 'languagelesson').'</a></div>';
+                } else {
+                    print_simple_box_start('center');
+                    echo '<div style="text-align:center;">';
+                    echo get_string('leftduringtimednoretake', 'languagelesson');
+                }   
+            }
+
+			// otherwise, if it was incomplete, give them the lastpageseen button
+			elseif (! $hascompleted) {
+                echo "<p style=\"text-align:center;\">".get_string('youhaveseen','languagelesson').'</p>';
+                
+                echo '<div style="text-align:center;">';
+                echo '<span class="lessonbutton standardbutton">'.
+                        '<a href="view.php?id='.$cm->id.'&amp;pageid='.$lastpageseen.'&amp;startlastseen=yes">'.
+                        get_string('yes').'</a></span>&nbsp;&nbsp;&nbsp;';
+
+				$buttontext = get_string('no');
+			}
 			
-			echo "<br /><br /><div class=\"lessonbutton standardbutton\"><a
-				href=\"view.php?id=$cm->id&amp;pageid=$firstpageID".
-				(($lesson->type == LL_TYPE_TEST) ? "&amp;reviewing=1" : '') . "\">".$buttontext.'</a></div>';
+			// print the basic jump in at first page (optionally reviewing) button
+			if (!$lesson->timed || $lesson->type == LL_TYPE_TEST) {
+				echo "<br /><br /><div class=\"lessonbutton standardbutton\"><a
+					href=\"view.php?id=$cm->id&amp;pageid=$firstpageID".
+					(($lesson->type == LL_TYPE_TEST) ? "&amp;reviewing=1" : '') . "\">".$buttontext.'</a></div>';
+			}
 			
 			echo "<br /><br /><div class=\"lessonbutton standardbutton\"><a
 				href=\"../../course/view.php?id=$course->id\">".get_string('returntocourse', 'languagelesson').'</a></div>';
@@ -1209,7 +1178,7 @@
 					$value = '';
 					
 					if ($attempt = languagelesson_get_most_recent_attempt_on($page->id, $USER->id)) {
-						if (!$manattempt = get_record('languagelesson_manattempts', 'attemptid', $attempt->id)) {
+						if (!$manattempt = get_record('languagelesson_manattempts', 'id', $attempt->manattemptid)) {
 							error('Retrieved attempt record, but failed to retrieve manual attempt record!');
 						}
 
@@ -1256,7 +1225,7 @@
             		$hassubmitted = false; //default behavior: it's a new try on a new question
 				
 					if ($attempt = languagelesson_get_most_recent_attempt_on($page->id, $USER->id)) {
-						if (!$manattempt = get_record('languagelesson_manattempts', 'attemptid', $attempt->id)) {
+						if (!$manattempt = get_record('languagelesson_manattempts', 'id', $attempt->manattemptid)) {
 							error('Failed to retrieve corresponding manual attempt record for this attempt.');
 						}
             			$hassubmitted = true; //there's a stored submission, so enable continuing

@@ -1642,8 +1642,6 @@ function languagelesson_grade($lesson, $userid = 0) {
     $earnedpts     	= 0;	// the user's earned number of points
     $manualpoints 	= 0;	// the number of potential manual points
 
-	error_log("lesson->penalty is $lesson->penalty, lesson->id is $lesson->id, userid is $userid");
-    
 	if (!$lesson->penalty && ($pageattempts = languagelesson_get_most_recent_attempts($lesson->id, $userid)) ||
 		$lesson->penalty && ($pageattempts = languagelesson_get_all_attempts($lesson->id, $userid))) {
 		

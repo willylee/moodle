@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/languagelesson/db" VERSION="20111128" COMMENT="XMLDB file for Moodle mod/languagelesson"
+<XMLDB PATH="mod/languagelesson/db" VERSION="20111219" COMMENT="XMLDB file for Moodle mod/languagelesson"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -116,9 +116,8 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" ENUM="false" NEXT="lessonid"/>
         <FIELD NAME="lessonid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="id" NEXT="pageid"/>
         <FIELD NAME="pageid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="lessonid" NEXT="userid"/>
-        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="pageid" NEXT="attemptid"/>
-        <FIELD NAME="attemptid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="userid" NEXT="viewed"/>
-        <FIELD NAME="viewed" TYPE="int" LENGTH="1" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" COMMENT="Binary flag: has attempt been viewed by a teacher?" PREVIOUS="attemptid" NEXT="graded"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="pageid" NEXT="viewed"/>
+        <FIELD NAME="viewed" TYPE="int" LENGTH="1" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" COMMENT="Binary flag: has attempt been viewed by a teacher?" PREVIOUS="userid" NEXT="graded"/>
         <FIELD NAME="graded" TYPE="int" LENGTH="3" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="viewed" NEXT="type"/>
         <FIELD NAME="type" TYPE="int" LENGTH="3" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="graded" NEXT="essay"/>
         <FIELD NAME="essay" TYPE="text" LENGTH="small" NOTNULL="false" SEQUENCE="false" ENUM="false" PREVIOUS="type" NEXT="fname"/>
@@ -129,9 +128,8 @@
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="lessonid"/>
         <KEY NAME="lessonid" TYPE="foreign" FIELDS="lessonid" REFTABLE="languagelesson" REFFIELDS="id" PREVIOUS="primary" NEXT="pageid"/>
-        <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="languagelesson_pages" REFFIELDS="id" PREVIOUS="lessonid" NEXT="attemptid"/>
-        <KEY NAME="attemptid" TYPE="foreign" FIELDS="attemptid" REFTABLE="languagelesson_attempts" REFFIELDS="id" PREVIOUS="pageid" NEXT="type"/>
-        <KEY NAME="type" TYPE="foreign" FIELDS="type" REFTABLE="languagelesson_qtypes" REFFIELDS="id" PREVIOUS="attemptid"/>
+        <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="languagelesson_pages" REFFIELDS="id" PREVIOUS="lessonid" NEXT="type"/>
+        <KEY NAME="type" TYPE="foreign" FIELDS="type" REFTABLE="languagelesson_qtypes" REFFIELDS="id" PREVIOUS="pageid"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
@@ -142,9 +140,8 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" ENUM="false" NEXT="lessonid"/>
         <FIELD NAME="lessonid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="id" NEXT="pageid"/>
         <FIELD NAME="pageid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="lessonid" NEXT="userid"/>
-        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="pageid" NEXT="attemptid"/>
-        <FIELD NAME="attemptid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="userid" NEXT="manattemptid"/>
-        <FIELD NAME="manattemptid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="attemptid" NEXT="teacherid"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="pageid" NEXT="manattemptid"/>
+        <FIELD NAME="manattemptid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="userid" NEXT="teacherid"/>
         <FIELD NAME="teacherid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" ENUM="false" PREVIOUS="manattemptid" NEXT="fname"/>
         <FIELD NAME="fname" TYPE="text" LENGTH="small" NOTNULL="false" SEQUENCE="false" ENUM="false" PREVIOUS="teacherid" NEXT="text"/>
         <FIELD NAME="text" TYPE="text" LENGTH="small" NOTNULL="false" SEQUENCE="false" ENUM="false" PREVIOUS="fname" NEXT="timeseen"/>
@@ -153,9 +150,8 @@
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="lessonid"/>
         <KEY NAME="lessonid" TYPE="foreign" FIELDS="lessonid" REFTABLE="languagelesson" REFFIELDS="id" PREVIOUS="primary" NEXT="pageid"/>
-        <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="languagelesson_pages" REFFIELDS="id" PREVIOUS="lessonid" NEXT="attemptid"/>
-        <KEY NAME="attemptid" TYPE="foreign" FIELDS="attemptid" REFTABLE="languagelesson_attempts" REFFIELDS="id" PREVIOUS="pageid" NEXT="manattemptid"/>
-        <KEY NAME="manattemptid" TYPE="foreign" FIELDS="manattemptid" REFTABLE="languagelesson_manattempts" REFFIELDS="id" PREVIOUS="attemptid"/>
+        <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="languagelesson_pages" REFFIELDS="id" PREVIOUS="lessonid" NEXT="manattemptid"/>
+        <KEY NAME="manattemptid" TYPE="foreign" FIELDS="manattemptid" REFTABLE="languagelesson_manattempts" REFFIELDS="id" PREVIOUS="pageid"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="userid" UNIQUE="false" FIELDS="userid" NEXT="teacherid"/>

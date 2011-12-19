@@ -60,7 +60,7 @@ require_once('lib.php');
 												"lessonid = $lesson->id
 												and pageid = $attempt->pageid
 												and userid = $attempt->userid
-												and attemptid = $attempt->id
+												and manattemptid = $attempt->manattemptid
 												and teacherid = $USER->id
 												and text NOT LIKE ''");
 			
@@ -69,7 +69,6 @@ require_once('lib.php');
 			$feedback->lessonid = $lesson->id;
 			$feedback->pageid = $attempt->pageid;
 			$feedback->userid = $attempt->userid;
-			$feedback->attemptid = $attempt->id;
 			$feedback->manattemptid = $manualattempt->id;
 			$feedback->teacherid = $USER->id;
 			$feedback->text = $text_response;

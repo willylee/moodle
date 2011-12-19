@@ -71,7 +71,6 @@ function upload() {
 			$manattempt->lessonid = $lesson->id;
 			$manattempt->userid = $userid;
 			$manattempt->pageid = $pageid;
-			$manattempt->attemptid = $attempt->id;
 			// store the question type for this attempt
 			$page = get_record('languagelesson_pages', 'id', $pageid);
 			$manattempt->type = $page->qtype;
@@ -198,7 +197,6 @@ function upload_feedback() {
 				$feedback->lessonid = $lesson->id;
 				$feedback->pageid = $attempt->pageid;
 				$feedback->userid = $attempt->userid;
-				$feedback->attemptid = $attempt->id;
 				$feedback->manattemptid = $manattempt->id;
 				$feedback->teacherid = $userid;
 				$feedback->fname = $_FILES[$file]['name'];

@@ -363,6 +363,7 @@ $string['showoldanswer'] = 'Display previous answer';
 $string['shuffleanswers'] = 'Shuffle answers';
 
 $string['oldgradeheader'] = 'You have already completed this Language Lesson';
+$string['oldgradeincomplete'] = 'You have not yet completed this Language Lesson';
 $string['oldgradethisisyourgrade'] = 'Your current score on this language lesson is $a->grade/$a->maxgrade.';
 $string['oldgradehasungraded'] = 'One or more of your submissions on this language lesson has not yet been graded. The above grade may
 or may not reflect your final grade.';
