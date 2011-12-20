@@ -18,7 +18,7 @@
     $jump[LL_NEXTPAGE] = get_string("nextpage", "languagelesson");
     $jump[LL_PREVIOUSPAGE] = get_string("previouspage", "languagelesson");
     $jump[LL_EOL] = get_string("endoflesson", "languagelesson");
-    if (!optional_param('firstpage', 0, PARAM_INT)) {
+    if (!$firstpage = optional_param('firstpage', 0, PARAM_INT)) {
         if (!$apageid = get_field("languagelesson_pages", "id", "lessonid", $lesson->id, "prevpageid", 0)) {
             error("Add page: first page not found");
         }
@@ -102,6 +102,7 @@
 	</script>
 	<input type="submit" onclick="setAction('addbranchtable');" value="<?php print_string('add4moreanswerfields', 'languagelesson');
 		?>" />
+	<?php if ($firstpage) { ?><input type="hidden" name="firstpage" value="1" /><?php } ?>
 	<br /><br />
     <input type="submit" value="<?php  print_string("addabranchtable", "lesson") ?>" />
     <input type="submit" name="cancel" value="<?php  print_string("cancel") ?>" />

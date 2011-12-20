@@ -138,7 +138,7 @@
         if (!$newanswerid) {
             error("Insert Page: answer record not inserted");
         }
-    } else {
+    } elseif ($form->qtype != LL_BRANCHTABLE) {
         $maxanswers = $form->maxanswers;
         if ($form->qtype == LL_MATCHING) {
             // need to add two to offset correct response and wrong response
@@ -216,20 +216,102 @@
         }
     }
 
-	
+
+
 	// if we just inserted a branch table, handle creating branch records and ENDOFBRANCH page records here
-	if ($form->qtype == LL_BRANCHTABLE) {
+	else if ($form->qtype == LL_BRANCHTABLE) {
+        $maxanswers = $form->maxanswers;
 		
+		//init array to hold $branch objects for use in ENDOFBRANCH page population
+		$branches = array();
+
 		// create languagelesson_branch records
 		//   - one for each branch
 		//   - stores the pageid of the first page in the branch (that is, the one specified as the branch's jumpto in the submitted
 		//   data
 		//   - if submitted data just has the jumpto as NEXTPAGE (default setting), firstpage points to 0
+        for ($i = 0; $i < $maxanswers; $i++) {
+			// since maxanswers is the number of maximum POSSIBLE answers, some of these may be empty; if so, skip them
+			if (empty($form->answer[$i])) { continue; }
 
+			$branch = new stdClass;
+			$branch->lessonid = $lesson->id;
+			$branch->parentid = $newpageid;
+			$branch->title = addslashes(trim($form->answer[$i]));
+			$branch->timecreated = time();
+			// set the firstpage field
+			if ($form->jumpto[$i] != LL_NEXTPAGE) { $branch->firstpage = $form->jumpto[$i]; }
+			else { $branch->firstpage = 0; }
+
+			if (! insert_record('languagelesson_branches', $branch)) {
+				error('Insert page: branch record not inserted');
+			}
+		}
+
+		// now pull the just-created branches in order to use their IDs
+		$branches = get_records('languagelesson_branches', 'parentid', $newpageid);
+		// get rid of the records being keyed to their ids
+		$branches = array_values($branches);
 
 		// create the invisible ENDOFBRANCH page records
 		//   - for all except last one, nextpageid points to the parent branch table
 		//   - use placement of branch head n+1 to decide where EOB n goes
+		for ($i=0; $i<count($branches); $i++) {
+			$branch = $branches[$i];
+
+			$neweob = new stdClass;
+			$neweob->lessonid = $lesson->id;
+			$neweob->branchid = $branch->id;
+			$neweob->qtype = LL_ENDOFBRANCH;
+			$neweob->timecreated = time();
+			$neweob->title = 'ENDOFBRANCH';
+
+			// determine prevpageid as follows:
+			// - if this is the last branch, the EOB becomes the last page in the lesson, period, so its prevpageid is set to the ID of
+			// what is currently the last page in the lesson
+			// - if the next branch record has a firstpageid, this EOB's prevpageid becomes that page's prevpageid
+			// - if the next branch does not have a firstpageid, this EOB becomes the last page in the lesson
+			$goesAtEnd = false;
+			if ($i+1 < count($branches) && $branches[$i+1]->firstpage) {
+				$neweob->prevpageid = get_field('languagelesson_pages', 'prevpageid', $branches[$i+1]->firstpage);
+			} else {
+				$neweob->prevpageid = get_field('languagelesson_pages', 'id', 'nextpageid', '0', 'lessonid', $lesson->id);
+				$goesAtEnd = true;
+			}
+
+			// set nextpageid; if this is being inserted as the last page in the lesson, its nextpageid will be 0 
+			if ($goesAtEnd) {
+				$neweob->nextpageid = 0;
+			} else {
+				$neweob->nextpageid = $newpageid;
+			}
+
+			// insert the EOB page
+			if (! $neweobid = insert_record('languagelesson_pages', $neweob)) {
+				error('Insert page: failed to insert EndOfBranch record');
+			}
+
+			// and now that we have the ID, go back and correct the references of the pages around the new EOB
+
+			// handle nextpageid of the page preceding the EOB record
+			// - if the page directly before the new EOB is not itself an EOB, point it to the EOB as next page
+			if (get_field('languagelesson_pages', 'qtype', 'id', $neweob->prevpageid) != LL_ENDOFBRANCH) {
+				set_field('languagelesson_pages', 'nextpageid', $neweobid, 'id', $neweob->prevpageid);
+			// - if it is an EOB, however, point it to the branch table, as its old nextpageid value should currently be 0 (it was the
+			// last page in the LL instance)
+			} else {
+				set_field('languagelesson_pages', 'nextpageid', $branch->parentid, 'id', $neweob->prevpageid);
+			}
+
+			// handle prevpageid of the page following the EOB record
+			// - if the branch following this EOB has a firstpage pointer (that is, it has content), then point that following branch's
+			// first page's prevpageid value to the newly-inserted EOB record
+			if ($i+1 < count($branches) && $branches[$i+1]->firstpage) {
+				set_field('languagelesson_pages', 'prevpageid', $neweobid, 'id', $branches[$i+1]->firstpage);
+			}
+			// - otherwise, this EOB record was inserted at the end, so there should be no prevpageid pointing to this record
+
+		}
 
 
 		// update the languagelesson instance's ordering values, for certainty of accuracy
