@@ -4,35 +4,53 @@
  *
  * @version $Id: addbranchtable.php 676 2011-09-16 19:53:22Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
- * @package lesson
+ * @package languagelesson
  **/
 
     $CFG->pagepath = 'mod/languagelesson/addbranchtable';
     
-    // first get the preceeding page
+	
+	/*
+	NOT YET USED
+	WAITING ON IMPLEMENTATION OF POPULATING BRANCHID VALUES
+
+	// branch jump options include pages fitting all of the following conditions
+	// - following where this BT is getting inserted
+	// - if this BT is nested (inserted inside a branch of another BT), only include the pages in the same branch
+	// - the jump options for branch n must follow the page chosen as the jump for branch n-1 (dynamically determined)
+	// - if no options fit all of these conditions for a given branch, its only option is '--', which puts it at the end of the
+	// lesson/branch containing the BT
+
+
+    // first get the preceding page
     $pageid = required_param('pageid', PARAM_INT);
+	// now use that to pull the list of pages meeting the conditions:
+	// - higher ordering value
+	// - if the preceding page is in a branch:
+	//   - in the same branch
+	//   - not the ENDOFBRANCH page
+    if (!$firstpage = optional_param('firstpage', 0, PARAM_INT)) {
+		$prevPage = get_record('languagelesson_pages', 'id', $pageid);
+		$pages = get_records_select('languagelesson_pages', "ordering > $prevPage->ordering" .
+															(($prevPage->branchid) ? "and branchid = $prevPage->branchid
+															 						  and qtype != ".LL_ENDOFBRANCH : ''));
+	}
+	*/
+
+	$pageid = required_param('pageid', PARAM_INT);
+	$firstpage = optional_param('firstpage', 0, PARAM_INT);
     
     // set of jump array
     $jump = array();
-    $jump[0] = get_string("thispage", "languagelesson");
-    $jump[LL_NEXTPAGE] = get_string("nextpage", "languagelesson");
-    $jump[LL_PREVIOUSPAGE] = get_string("previouspage", "languagelesson");
-    $jump[LL_EOL] = get_string("endoflesson", "languagelesson");
-    if (!$firstpage = optional_param('firstpage', 0, PARAM_INT)) {
-        if (!$apageid = get_field("languagelesson_pages", "id", "lessonid", $lesson->id, "prevpageid", 0)) {
-            error("Add page: first page not found");
-        }
-        while (true) {
-            if ($apageid) {
-                $title = get_field("languagelesson_pages", "title", "id", $apageid);
-                $jump[$apageid] = $title;
-                $apageid = get_field("languagelesson_pages", "nextpageid", "id", $apageid);
-            } else {
-                // last page reached
-                break;
-            }
-        }
-     }
+	// init to include only the default endoflesson choice
+    $jump[0] = '--';
+	// now, if there are pages after where this BT is getting created, populate the list with them
+	if (!$firstpage) {
+		$pages = get_records('languagelesson_pages', 'lessonid', $lesson->id, 'ordering');
+		foreach ($pages as $apageid => $apage) {
+			$jump[$apageid] = $apage->title;
+		}
+    }
 
 	// they may have added answer fields, so pull anything that was submitted
     $data = data_submitted();

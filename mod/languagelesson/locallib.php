@@ -550,10 +550,10 @@ function languagelesson_print_page_actions($cmid, $page, $printmove, $printaddpa
         if ($printaddpage) {
             // Add page drop-down
             $options = array();
-            $options['addcluster&amp;sesskey='.sesskey()]      = get_string('clustertitle', 'languagelesson');
-            $options['addendofcluster&amp;sesskey='.sesskey()] = get_string('endofclustertitle', 'languagelesson');
+            //$options['addcluster&amp;sesskey='.sesskey()]      = get_string('clustertitle', 'languagelesson');
+            //$options['addendofcluster&amp;sesskey='.sesskey()] = get_string('endofclustertitle', 'languagelesson');
             $options['addbranchtable']                         = get_string('branchtable', 'languagelesson');
-            $options['addendofbranch&amp;sesskey='.sesskey()]  = get_string('endofbranch', 'languagelesson');
+            //$options['addendofbranch&amp;sesskey='.sesskey()]  = get_string('endofbranch', 'languagelesson');
             $options['addpage']                                = get_string('question', 'languagelesson');
             // Base url
             $common = "$CFG->wwwroot/mod/languagelesson/lesson.php?id=$cmid&amp;pageid=$page->id&amp;action=";
@@ -3801,5 +3801,121 @@ function recalculate_maxgrade($lessonid) {
 	}
 
 }
+
+
+
+
+
+/*
+ * Update the ordering and branchID values (structural data) in an LL instance
+ * NOTE that because some things can seriously change the structure of a lesson (e.g. formatting it with a branch table), this forces a
+ * complete refresh of ordering values, from first page to last page
+ * @param int $lessonid The ID of the lesson to update
+ */
+function languagelesson_update_ordering($lessonid) {
+
+	// pull all of the LL's pages, and store the ID of the first one
+	$pages = get_records('languagelesson_pages', 'lessonid', $lessonid);
+
+	// initialize the nextpage pointer to the first page in the LL
+	$nextpage = get_field('languagelesson_pages', 'id', 'prevpageid', 0, 'lessonid', $lessonid);
+	// initialize the ordering value
+	$ordering = 1;
+	// initialize the current branchID value
+	$curbranch = null;
+	// and initialize the array of branches to work through
+	$branches = array();
+
+
+	
+
+	$curpositions = array();
+	$branchsets = array();
+	$currentlevel = 0;
+	$curbranch = null;
+
+
+
+	while ($nextpage) {
+		error_log('===============================');
+		error_log("current page is $nextpage");
+		$page = $pages[$nextpage];
+
+		if ($page->qtype == LL_BRANCHTABLE) {
+			// increment the nested level counter
+			$currentlevel++;
+			// pull the branches for this BT
+			$thesebranches = array_values(get_records('languagelesson_branches', 'parentid', $page->id));
+
+			// save the set of branches that apply to this nested level
+			$branchsets[$currentlevel] = $thesebranches;
+			// and initialize the pointer index of the branch currently being examined to 0
+			$curpositions[$currentlevel] = 0;
+		}
+
+		// update the page record with a post-incremented ordering value, and mark its branchID if in a branch
+		set_field('languagelesson_pages', 'ordering', $ordering++, 'id', $page->id);
+		if ($curbranch) { set_field('languagelesson_pages', 'branchid', $curbranch->id, 'id', $page->id); }
+
+		// having updated the record, we can now update the current branch if necessary
+		if ($page->qtype == LL_BRANCHTABLE) {
+			// the relevant branches were pulled above, and we need the very first one 
+			$curbranch = $thesebranches[0];
+			// and the nextpage will be the nextpageid of the BT page
+			$nextpage = $page->nextpageid;
+		}
+
+		// ENDOFBRANCH records have more complex handling; here we need to both
+		// - find the new current branch, if there is one
+		// - find the correct nextpage value
+		else if ($page->qtype == LL_ENDOFBRANCH) {
+			// init a bool check of if this is the last EOB of a branchset
+			$finishedBranchSet = false;
+
+			//current branch
+			// are we at the end of the branchset?
+			if (++$curpositions[$currentlevel] >= count($branchsets[$currentlevel])) {
+				// if so, remove the branchset
+				unset($branchsets[$currentlevel]);
+				// and the curposition pointer, then decrement currentlevel
+				unset($curpositions[$currentlevel--]);
+				// flag that we hit the end
+				$finishedBranchSet = true;
+			}
+			// are we still in a branchset?
+			if ($currentlevel) {
+				// get the next branch of the current branchset (note that the $curpositions[$currentlevel] value was already incremented
+				// above, so there is no need to increment it here)
+				$curbranchset = $branchsets[$currentlevel];
+				$curbranch = $curbranchset[$curpositions[$currentlevel]];
+			} else {
+				// reset curbranch to empty
+				$curbranch = null;
+			}
+
+			//nextpage
+			if ($finishedBranchSet) {
+				$nextpage = $page->nextpageid;
+			} else {
+				// pull the firstpage value of the next branch to loop over (stored in $curbranch); if this value is 0, means the
+				// branch is empty and therefore exactly one page will match its branchid: the ENDOFBRANCH page inserted at branch
+				// creation, so pull that value as the $nextpage
+				if (! $nextpage = get_field('languagelesson_branches', 'firstpage', 'id', $curbranch->id)) {
+					$nextpage = get_field('languagelesson_pages', 'id', 'branchid', $curbranch->id);
+				}
+			}
+		}
+
+		// otherwise, it's a normal page in a linear progression, so just pull the nextpageid value
+		else {
+			$nextpage = $page->nextpageid;
+		}
+
+	}
+	
+}
+
+
+
 
 ?>

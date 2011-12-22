@@ -30,6 +30,8 @@
     
     list($cm, $course, $lesson) = languagelesson_get_basics($id);
 
+	//languagelesson_update_ordering($lesson->id);
+
     require_login($course->id, false, $cm);
     
     $context = get_context_instance(CONTEXT_MODULE, $cm->id);

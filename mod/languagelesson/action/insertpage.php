@@ -4,7 +4,7 @@
  *
  * @version $Id: insertpage.php 677 2011-10-12 18:38:45Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
- * @package lesson
+ * @package languagelesson
  **/
     require_sesskey();
 
@@ -37,6 +37,8 @@
 		// set the ordering value for the new page as the order val for prev page + 1
 		$lastOrderVal = get_field('languagelesson_pages', 'ordering', 'id', $newpage->prevpageid);
 		$newpage->ordering = $lastOrderVal + 1;
+		// set the branchid value for the new page to the branchid of the preceding page
+		$newpage->branchid = $page->branchid;
         $newpage->timecreated = $timenow;
         $newpage->qtype = $form->qtype;
         if (isset($form->qoption)) {
@@ -239,9 +241,8 @@
 			$branch->parentid = $newpageid;
 			$branch->title = addslashes(trim($form->answer[$i]));
 			$branch->timecreated = time();
-			// set the firstpage field
-			if ($form->jumpto[$i] != LL_NEXTPAGE) { $branch->firstpage = $form->jumpto[$i]; }
-			else { $branch->firstpage = 0; }
+			// set the firstpage field (a jumpto value of 0 means stick it at the end of the lesson)
+			$branch->firstpage = $form->jumpto[$i];
 
 			if (! insert_record('languagelesson_branches', $branch)) {
 				error('Insert page: branch record not inserted');
@@ -249,11 +250,26 @@
 		}
 
 		// now pull the just-created branches in order to use their IDs
-		$branches = get_records('languagelesson_branches', 'parentid', $newpageid);
-		// get rid of the records being keyed to their ids
+		$branches = get_records('languagelesson_branches', 'parentid', $newpageid, 'id');
+		// get rid of the records being keyed to their ids (give them sequential, meaningless indices)
 		$branches = array_values($branches);
 
-		// create the invisible ENDOFBRANCH page records
+
+		// determine what the nextpageid should be for the case of inserting an EOB at the end of the current level (lesson or branch)
+		// - if the parent branch table has no branch ID, this branching structure is not inside another branching structure, so the
+		// EOB is being inserted at lesson level, therefore the nextpageid will be 0 (marking it as the end of the lesson)
+		// - if the parent branch table does have a branch ID, the EOB is being inserted at branch level, so the nextpageid should be
+		// the nextpageid of the EOB record ending the containing branch
+		if (!$newpage->branchid) {
+			$endpageid = 0;
+		} else {
+			$containingBranchPages = get_records('languagelesson_pages', 'branchid', $newpage->branchid, 'ordering');
+			$lastContainingBranchPage = end($containingBranchPages);
+			$endpageid = $lastContainingBranchPage->nextpageid;
+		}
+
+
+		// create the ENDOFBRANCH page records
 		//   - for all except last one, nextpageid points to the parent branch table
 		//   - use placement of branch head n+1 to decide where EOB n goes
 		for ($i=0; $i<count($branches); $i++) {
@@ -267,21 +283,23 @@
 			$neweob->title = 'ENDOFBRANCH';
 
 			// determine prevpageid as follows:
-			// - if this is the last branch, the EOB becomes the last page in the lesson, period, so its prevpageid is set to the ID of
-			// what is currently the last page in the lesson
+			// - if this is the last branch, the EOB becomes the last page in the current structural level (e.g. lesson or branch),
+			// period, so its prevpageid is set to the ID of what is currently the last page in that level
 			// - if the next branch record has a firstpageid, this EOB's prevpageid becomes that page's prevpageid
-			// - if the next branch does not have a firstpageid, this EOB becomes the last page in the lesson
+			// - if the next branch does not have a firstpageid, this EOB becomes the last page in the current level
 			$goesAtEnd = false;
 			if ($i+1 < count($branches) && $branches[$i+1]->firstpage) {
-				$neweob->prevpageid = get_field('languagelesson_pages', 'prevpageid', $branches[$i+1]->firstpage);
+				$neweob->prevpageid = get_field('languagelesson_pages', 'id', 'nextpageid', $branches[$i+1]->firstpage);
 			} else {
-				$neweob->prevpageid = get_field('languagelesson_pages', 'id', 'nextpageid', '0', 'lessonid', $lesson->id);
+				$neweob->prevpageid = get_field('languagelesson_pages', 'id', 'nextpageid', $endpageid, 'lessonid', $lesson->id);
 				$goesAtEnd = true;
 			}
 
-			// set nextpageid; if this is being inserted as the last page in the lesson, its nextpageid will be 0 
+			// set nextpageid; if this is being inserted as the last page in the current structural level, its nextpageid will be that
+			// of what was formerly the last page in the same level (e.g. 0 if inserted at lesson level, the parent BT or next page
+			// after the complete branchset if inserted at branch level)
 			if ($goesAtEnd) {
-				$neweob->nextpageid = 0;
+				$neweob->nextpageid = $endpageid;
 			} else {
 				$neweob->nextpageid = $newpageid;
 			}
@@ -315,8 +333,7 @@
 
 
 		// update the languagelesson instance's ordering values, for certainty of accuracy
-		// languagelesson_update_ordering($lesson->id);
-
+		languagelesson_update_ordering($lesson->id);
 
 	}
 

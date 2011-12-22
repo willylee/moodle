@@ -23,7 +23,7 @@
     list($cm, $course, $lesson) = languagelesson_get_basics($id);
     
     if ($firstpage = get_record('languagelesson_pages', 'lessonid', $lesson->id, 'prevpageid', 0)) {
-        if (!$pages = get_records('languagelesson_pages', 'lessonid', $lesson->id)) {
+        if (!$pages = get_records('languagelesson_pages', 'lessonid', $lesson->id, 'ordering')) {
             error('Could not find lesson pages');
         }
     }
@@ -71,7 +71,8 @@
                 $table->cellpadding = '2px';
                 $table->data = array();
                 
-                while ($pageid != 0) {
+                /*
+				while ($pageid != 0) {
                     $page = $pages[$pageid];
 
                     if ($page->qtype == LL_MATCHING) {
@@ -96,6 +97,30 @@
                                           );
                     $pageid = $page->nextpageid;
                 }
+				*/
+				foreach ($pages as $page) {
+
+                    if ($page->qtype == LL_MATCHING) {
+                        // The jumps for matching question type is stored
+                        // in the 3rd and 4rth answer record.
+                        $limitfrom = $limitnum = 2;
+                    } else {
+                        $limitfrom = $limitnum = '';
+                    }
+
+                    $jumps = array();
+                    if($answers = get_records_select("languagelesson_answers", "lessonid = $lesson->id and pageid = $page->id", 'id', '*', $limitfrom, $limitnum)) {
+                        foreach ($answers as $answer) {
+                            $jumps[] = languagelesson_get_jump_name($answer->jumpto);
+                        }
+                    }
+                    
+                    $table->data[] = array("<a href=\"$CFG->wwwroot/mod/languagelesson/edit.php?id=$cm->id&amp;mode=single&amp;pageid=".$page->id."\">".format_string($page->title,true).'</a>',
+                                           languagelesson_get_qtype_name($page->qtype),
+                                           implode("<br />\n", $jumps),
+                                           languagelesson_print_page_actions($cm->id, $page, $npages, true, true)
+                                          );
+				}
                 
                 print_table($table);
                 break;
