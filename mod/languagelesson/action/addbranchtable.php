@@ -100,7 +100,7 @@
     for ($i = 0; $i < $maxanswers; $i++) {
         $iplus1 = $i + 1;
         echo '<tr><td><table><tr><td class="answerrow_cell">';
-		echo "<b>".get_string("description", "languagelesson")." $iplus1:</b><br />\n";
+		echo "<b>".get_string("branchtitle", "languagelesson")." $iplus2:</b><br />\n";
         print_textarea(false, 1, 40, 0, 0, "answer[$i]", ((isset($data->answer[$i])) ? $data->answer[$i] : '')); 
 		echo '</td><td class="answerrow_cell">';
         echo "<b>".get_string("jump", "languagelesson")." $iplus1:</b><br />\n";

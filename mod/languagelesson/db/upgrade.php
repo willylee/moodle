@@ -425,6 +425,16 @@ function xmldb_languagelesson_upgrade($oldversion=0) {
 	}
 
 
+	// add the ordering field to languagelesson_branches
+	if ($result && $oldversion < 2011122701) {
+		$table = new XMLDBTable('languagelesson_branches');
+		$field = new XMLDBField('ordering');
+		$field->setAttributes(XMLDB_TYPE_INTEGER, '3', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, 0, 'parentid');
+		
+		$result = add_field($table, $field);
+	}
+
+
 
 	return $result;
 }

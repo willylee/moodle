@@ -5,7 +5,7 @@
  *
  * @version $Id: locallib.php 677 2011-10-12 18:38:45Z griffisd $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
- * @package lesson
+ * @package languagelesson
  **/
 
 //error_reporting(E_ALL error_reporting(E_ALL & ~(E_DEPRECATED|E_NOTICE));
@@ -2046,21 +2046,8 @@ function languagelesson_print_clock_block($cmid, $lesson, $timer) {
 
 
 /**
- * If left menu is turned on, then this will
- * print the menu in a block
- *
- * @param int $cmid Course Module ID for this lesson
- * @param object $lesson Full lesson record object
- * @return void
- **/
-
-
-function languagelesson_print_menu_block($cmid, $lesson) {
-
-/*
- * This has been extensively customized from the original for use in
- * languagelessons.  In lesson functionality, only branch tables are
- * printed here.  In language lessons, the following rules are followed:
+ * If left menu (navigation) block is turned on, then this will
+ * print it out, according to the following rules:
  *
  * - Cluster, End of Cluster, and End of Branch demarcation structural pages
  *	 are not printed at all.
@@ -2073,294 +2060,33 @@ function languagelesson_print_menu_block($cmid, $lesson) {
  *	 	on are printed
  *	 :: all question pages in other branches are not printed
  *
- * The logic is thoroughly commented below.
- *
- */
-
+ * @param int $cmid Course Module ID for this lesson
+ * @param object $lesson Full lesson record object
+ * @return void
+ **/
+function languagelesson_print_menu_block($cmid, $lesson) {
     global $CFG, $USER;
+	require_once('menublock.php');
 
     if ($lesson->displayleft) {
-        $pageid = get_field('languagelesson_pages', 'id', 'lessonid', $lesson->id, 'prevpageid', 0);
-        $pages  = get_records_select('languagelesson_pages', "lessonid = $lesson->id");
-        $currentpageid = optional_param('pageid', $pageid, PARAM_INT);
-        
-        
-      /// initialize all the variables used in context-sensitive printing of the
-      /// left menu contents
-      /*
-       * @param branchtable_id :: the pageID of the most recent branch table seen
-       * @param branch_heads :: list of pageIDs of pages that start each branch in the
-       *						current branch table
-       * @param branch_pages :: a temp array of all pageIDs belonging to the branch
-       *						currently being checked; used to determine the contents
-       *						of currentbranch_pages
-       * @param currentbranch_pages :: list of all pageIDs belonging to the branch that
-       *							   the user is currently in
-       * @param branches_seen :: count variable used (with branches_expected) to determine
-       *						 when the end of the current branch table has been reached;
-       *						 incremented when a LL_ENDOFBRANCH page is seen
-       * @param branches_expected :: count variable used (with branches_seen) to determine
-       *							 when the end of the current branch table has been reached
-       * @param inbranchtable :: bool flag used to mark whether the page currently being
-       *						 checked belongs to a branch table or not
-       * @param print :: bool flag marking whether page currently being checked should be
-       *				 printed in the left menu block
-       * @param indent :: multiplier variable used to mark with how many degrees of indentation
-       *				  page currently being checked should be printed in the left menu
-       * @param indent_pixels :: int constant setting the number of pixels the indent
-       *						 multiplier is multiplied by to yield final indentation value
-       */
-        $branchtable_id = null;
-        $branch_heads = array();
-        $branch_pages = array();
-        $currentbranch_pages = array();
-        $branches_seen = 0;
-        $branches_expected = 0;
-        $inbranchtable = false;
-        $print = true;
-        $indent = 0;
-        $indent_pixels = 20;
-        
-        
-      /// initialize the default (base) texts used for printing selected or not selected
-      /// page links in the left menu
-        $selected = '<li class="selected"><span %s>%s</span> %s %s</li>';
-        $notselected = "<li class=\"notselected\"><a href=\"$CFG->wwwroot/mod/"
-        				  . "languagelesson/view.php?id=$cmid&amp;pageid=%d\""
-        				  . "class=\"%s\" %s >%s</a>%s %s</li>\n";
-      /// initialize the base style declaration used in setting indent values
-        $indent_style = 'style="margin-left:%dpx;"';
-        
+		$firstpageid = get_field('languagelesson_pages', 'id', 'prevpageid', 0, 'lessonid', $lesson->id);
+        $pages  = get_records('languagelesson_pages', 'lessonid', $lesson->id, 'ordering');
+        $curpageid = optional_param('pageid', $firstpageid, PARAM_INT);
 
-        if ($pageid and $pages) {
+        if ($pages) {
 			$content = '<a href="#maincontent" class="skip">'.get_string('skip', 'languagelesson')."</a>\n<div
 				class=\"menuwrapper\">\n<ul>\n";
-            while ($pageid != 0) {
-                $page = $pages[$pageid];
 
-                switch ($page->qtype) {
-                	case LL_CLUSTER:
-                	case LL_ENDOFCLUSTER:
-                		break;
-                	case LL_BRANCHTABLE:
-                		$branchtable_id = $page->id;
-                		$branch_heads = languagelesson_get_branch_heads($page->id);
-                		$branches_seen = 0; //reset count of branches seen
-                		$branches_expected = count($branch_heads);
-                		$inbranchtable = true;
-                		if ($page->id == $currentpageid) {
-                			$content .= sprintf($selected, sprintf($indent_style, 0*$indent_pixels), format_string($page->title,true),
-									'', '');
-                		} else {
-							$content .= sprintf($notselected, $page->id, '', sprintf($indent_style, 0*$indent_pixels),
-									format_string($page->title, true), '', '');
-                		}
-                		break;
-                	case LL_ENDOFBRANCH:
-                		$branches_seen++;
-                		if ($branches_seen == $branches_expected) {
-                			$inbranchtable = false;
-                		}
-                		break;
-                	default:
-                		
-                	///// PRINT BOOL CHECKING /////
-                		
-                	  /// if we aren't in a branch table, flag it as to-be-printed with no
-                	  /// indent, and move on
-                		if (! $inbranchtable) {
-                			$print = true;
-                			$indent = 0;
-                		} 
-                	  /// otherwise, do special checking to see if it should be printed and
-                	  /// manage behind-the-scenes variables
-                		else {
-                		  /// if it's the first page in a branch (a branch header)
-                			if (in_array($page->id, $branch_heads)) {
-                			  /// get its title...
-                			  	$branchheader_title = languagelesson_get_branch_header_title($branchtable_id, $page->id);
-                				
-                			  /// ...get the list of pageIDs belonging to this branch...
-                				$branch_pages = languagelesson_get_current_branch_pages($lesson->id, $page->id);
-                				
-                			  /// ...if the currently selected page is among the pageIDs belonging
-                			  /// to this branch, save that list as the list of branch pages in
-                			  /// the current branch...
-                			  	if (in_array($currentpageid, $branch_pages)) {
-                			  		$currentbranch_pages = $branch_pages;
-                			  	}
-                				
-                			  /// ...and print the branch header
-                				if (in_array($page->id, $currentbranch_pages)) {
-                				  /// if the branch header being checked is in the current branch,
-                				  /// print the header as selected
-									$content .= sprintf($selected, sprintf($indent_style, 1*$indent_pixels),
-											format_string($branchheader_title,true), '', '');
-                				} else {
-                				  /// otherwise, just print the header as not selected
-									$content .= sprintf($notselected, $page->id, '', sprintf($indent_style, 1*$indent_pixels),
-											format_string($branchheader_title,true), '', '');
-                				}
-                			}
-                			
-                		  /// now that we may have updated the list of current branch pageids,
-                		  /// check this page against it: if it's in the current branch, flag
-                		  /// it as to-be-printed and set the indent, otherwise, hide it
-                			if (in_array($page->id, $currentbranch_pages)) {
-                				$print = true;
-                				$indent = 2;
-                			} else {
-                				$print = false;
-                			}
-                		}
-                		
-                		
-                	///// PRINTING /////
-                		
-                		if ($print) {
-							if ($state = languagelesson_get_autograde_state($lesson->id, $page->id, $USER->id)) {
-								if ($lesson->contextcolors) {
-									// reset the optional second image string
-									$img2 = '';
-									if ($state == 'correct') {
-										$class = 'leftmenu_autograde_correct';
-										$img = "<img src=\"{$CFG->wwwroot}".get_string('iconsrccorrect', 'languagelesson')."\"
-											width=\"10\" height=\"10\" alt=\"correct\" />";
-									} else if ($state == 'incorrect') {
-										$class = 'leftmenu_autograde_incorrect';
-										$img = "<img src=\"{$CFG->wwwroot}".get_string('iconsrcwrong', 'languagelesson')."\"
-											width=\"10\" height=\"10\" alt=\"incorrect\" />";
-									} else {
-										//it's manually-graded
-										$class = 'leftmenu_manualgrade';
-										$src = get_string('iconsrcmanual', 'languagelesson');
-										$fbsrc = get_string('iconsrcfeedback', 'languagelesson');
-										$img = "<img src=\"{$CFG->wwwroot}$src\"
-											width=\"10\" height=\"10\" alt=\"manually-graded\" />";
-										if ($state == 'feedback') {
-											$img2 = "<img src=\"{$CFG->wwwroot}$fbsrc\"
-												width=\"15\" height=\"15\" alt=\"manually-graded\" />";
-										}
-									}
-								} else {
-									$class = 'leftmenu_attempted';
-									$img = '';
-								}
-							} else {
-								//page has not been attempted, so don't mod the style and don't include an image
-								$class = 'leftmenu_noattempt';
-								$img = '';
-							}
-						/// print the link based on if it is the current page or not
-							if ($page->id == $currentpageid) { 
-								$content .= sprintf($selected, sprintf($indent_style, $indent*$indent_pixels),
-									format_string($page->title,true), $img, ((!empty($img2)) ? $img2 : ''));
-							} else {
-								$content .= sprintf($notselected, $page->id, $class, sprintf($indent_style, $indent*$indent_pixels),
-									format_string($page->title,true), $img, ((!empty($img2)) ? $img2 : ''));
-							}
-						}
-						break;
-						
-                } // end switch($page->qtype)
-                
-                $pageid = $page->nextpageid;
-            } // end while($pageid != 0)
+			$indent_pixels = 20;
+			$menublock = new LanguageLessonMenuBlock($cmid, $lesson->id, $curpageid, $indent_pixels);
+			$content = $menublock->printAll($pages, $content);
+
             $content .= "</ul>\n</div>\n";
 			print_side_block(get_string('lessonmenu', 'languagelesson'), $content, NULL, NULL, '', array('class' => 'menu'),
 					get_string('lessonmenu', 'languagelesson'));
         }
     }
 }
-
-
-
-
-
-
-/**
- * @NEEDSDOC@
- **/
-function languagelesson_get_branch_heads($branchtable_id) {
-	
-	$branches = get_records('languagelesson_answers', 'pageid', $branchtable_id);
-	
-	$branch_heads = array();
-	
-	foreach ($branches as $branch) {
-		$branch_heads[] = $branch->jumpto;
-	}
-	
-	return $branch_heads;
-	
-}
-
-
-
-
-
-
-/**
- * @NEEDSDOC@
- **/
-function languagelesson_get_current_branch_pages($lessonid, $branchhead_pageid) {
-	
-	$pageid = get_field('languagelesson_pages', 'id', 'lessonid', $lessonid, 'prevpageid', 0);
-    $pages  = get_records_select('languagelesson_pages', "lessonid = $lessonid");
-    
-    $current_branch_pages = array();
-    $isinbranch = false;
-    
-    while ($pageid != 0) {
-    	$page = $pages[$pageid];
-    	
-    	if ($page->id == $branchhead_pageid) {
-    		$isinbranch = true;
-    	}
-    	
-    	if ($page->qtype == LL_ENDOFBRANCH) {
-    		$isinbranch = false;
-    	}
-    	
-    	if ($isinbranch) {
-    		$current_branch_pages[] = $page->id;
-    	}
-    	
-    	$pageid = $page->nextpageid;
-    }
-    
-    return $current_branch_pages;
-	
-}
-                				
-
-
-
-
-/**
- * @NEEDSDOC@
- **/
-function languagelesson_get_branch_header_title($branchtable_id, $pageid) {
-	
-	$branches = get_records('languagelesson_answers', 'pageid', $branchtable_id);
-	
-	$title = '';
-	foreach ($branches as $branch) {
-		if ((int)$branch->jumpto == $pageid) {
-			$title = $branch->answer;
-		}
-	}
-	
-	return $title;
-	
-}
-
-
-
-
-
-
-
 
 
 
@@ -3821,31 +3547,26 @@ function languagelesson_update_ordering($lessonid) {
 	$nextpage = get_field('languagelesson_pages', 'id', 'prevpageid', 0, 'lessonid', $lessonid);
 	// initialize the ordering value
 	$ordering = 1;
-	// initialize the current branchID value
-	$curbranch = null;
-	// and initialize the array of branches to work through
-	$branches = array();
 
-
-	
-
+	// array mapping branch set depth => index of last branch seen inside the branch set
 	$curpositions = array();
+	// array mapping branch set depth => array of branch objects belonging to that branch depth
 	$branchsets = array();
+	// depth counter of the branch set currently being processed
 	$currentlevel = 0;
+	// pointer to the branch object currently under consideration
 	$curbranch = null;
 
 
 
 	while ($nextpage) {
-		error_log('===============================');
-		error_log("current page is $nextpage");
 		$page = $pages[$nextpage];
 
 		if ($page->qtype == LL_BRANCHTABLE) {
 			// increment the nested level counter
 			$currentlevel++;
 			// pull the branches for this BT
-			$thesebranches = array_values(get_records('languagelesson_branches', 'parentid', $page->id));
+			$thesebranches = array_values(get_records('languagelesson_branches', 'parentid', $page->id, 'ordering'));
 
 			// save the set of branches that apply to this nested level
 			$branchsets[$currentlevel] = $thesebranches;

@@ -48,6 +48,11 @@
 	$atext = optional_param('atext', '', PARAM_RAW);
 	$saved_nextpageid = optional_param('nextpageid', 0, PARAM_INT);
 
+	// check if the user is trying to view the contents of an empty branch
+	if ($branchnocontent = optional_param('branchnocontent', 0, PARAM_INT)) {
+		error('You are attempting to view a branch that has no pages!');
+	}
+
 ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////
 

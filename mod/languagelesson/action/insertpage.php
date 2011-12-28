@@ -232,6 +232,7 @@
 		//   - stores the pageid of the first page in the branch (that is, the one specified as the branch's jumpto in the submitted
 		//   data
 		//   - if submitted data just has the jumpto as NEXTPAGE (default setting), firstpage points to 0
+		$ordering = 0;
         for ($i = 0; $i < $maxanswers; $i++) {
 			// since maxanswers is the number of maximum POSSIBLE answers, some of these may be empty; if so, skip them
 			if (empty($form->answer[$i])) { continue; }
@@ -239,6 +240,7 @@
 			$branch = new stdClass;
 			$branch->lessonid = $lesson->id;
 			$branch->parentid = $newpageid;
+			$branch->ordering = ++$ordering;
 			$branch->title = addslashes(trim($form->answer[$i]));
 			$branch->timecreated = time();
 			// set the firstpage field (a jumpto value of 0 means stick it at the end of the lesson)
@@ -250,7 +252,7 @@
 		}
 
 		// now pull the just-created branches in order to use their IDs
-		$branches = get_records('languagelesson_branches', 'parentid', $newpageid, 'id');
+		$branches = get_records('languagelesson_branches', 'parentid', $newpageid, 'ordering');
 		// get rid of the records being keyed to their ids (give them sequential, meaningless indices)
 		$branches = array_values($branches);
 

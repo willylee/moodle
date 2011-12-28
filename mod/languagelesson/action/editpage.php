@@ -22,36 +22,41 @@
 
 	// set up jump array
 	$jump = array();
-	$jump[0] = get_string("thispage", "languagelesson");
-	$jump[LL_NEXTPAGE] = get_string("nextpage", "languagelesson");
-	$jump[LL_PREVIOUSPAGE] = get_string("previouspage", "languagelesson");
-	if(languagelesson_display_branch_jumps($lesson->id, $page->id)) {
-		$jump[LL_UNSEENBRANCHPAGE] = get_string("unseenpageinbranch", "languagelesson");
-		$jump[LL_RANDOMPAGE] = get_string("randompageinbranch", "languagelesson");
+
+	// set up standard vals; if a branch table, don't display any of these, just the '--' end marker
+	if ($page->qtype != LL_BRANCHTABLE) {
+		$jump[0] = get_string("thispage", "languagelesson");
+		$jump[LL_NEXTPAGE] = get_string("nextpage", "languagelesson");
+		$jump[LL_PREVIOUSPAGE] = get_string("previouspage", "languagelesson");
+		if(languagelesson_display_branch_jumps($lesson->id, $page->id)) {
+			$jump[LL_UNSEENBRANCHPAGE] = get_string("unseenpageinbranch", "languagelesson");
+			$jump[LL_RANDOMPAGE] = get_string("randompageinbranch", "languagelesson");
+		}
+		if ($page->qtype == LL_ENDOFBRANCH || $page->qtype == LL_BRANCHTABLE) {
+			$jump[LL_RANDOMBRANCH] = get_string("randombranch", "languagelesson");
+		}
+		if(languagelesson_display_cluster_jump($lesson->id, $page->id) && $page->qtype != LL_BRANCHTABLE && $page->qtype != LL_ENDOFCLUSTER) {
+			$jump[LL_CLUSTERJUMP] = get_string("clusterjump", "languagelesson");
+		}
+		$jump[LL_EOL] = get_string("endoflesson", "languagelesson");
+		if (!$apageid = get_field("languagelesson_pages", "id", "lessonid", $lesson->id, "prevpageid", 0)) {
+			error("Edit page: first page not found");
+		}
+	} else {
+		$jump[0] = '--';
 	}
-	if ($page->qtype == LL_ENDOFBRANCH || $page->qtype == LL_BRANCHTABLE) {
-		$jump[LL_RANDOMBRANCH] = get_string("randombranch", "languagelesson");
-	}
-	if(languagelesson_display_cluster_jump($lesson->id, $page->id) && $page->qtype != LL_BRANCHTABLE && $page->qtype != LL_ENDOFCLUSTER) {
-		$jump[LL_CLUSTERJUMP] = get_string("clusterjump", "languagelesson");
-	}
-	$jump[LL_EOL] = get_string("endoflesson", "languagelesson");
-	if (!$apageid = get_field("languagelesson_pages", "id", "lessonid", $lesson->id, "prevpageid", 0)) {
-		error("Edit page: first page not found");
-	}
-	while (true) {
-		if ($apageid) {
-			if (!$apage = get_record("languagelesson_pages", "id", $apageid)) {
-				error("Edit page: apage record not found");
-			}
-			// removed != LL_ENDOFBRANCH...
-			if (trim($page->title)) { // ...nor nuffin pages
-				$jump[$apageid] = strip_tags(format_string($apage->title,true));
-			}
-			$apageid = $apage->nextpageid;
-		} else {
-			// last page reached
-			break;
+
+	// and now populate the rest of the jumps with the actual pages
+	$pages = get_records('languagelesson_pages', 'lessonid', $lesson->id, 'ordering');
+	foreach ($pages as $apageid => $apage) {
+		// want to avoid invisible structural pages
+		if ($apage->qtype == LL_ENDOFBRANCH
+				|| $apage->qtype == LL_ENDOFCLUSTER) {
+			continue;
+		}
+		// otherwise, push it in
+		if (trim($apage->title)) {
+			$jump[$apageid] = strip_tags(format_string($apage->title,true));
 		}
 	}
 
@@ -81,12 +86,14 @@
 // QTYPES AND PAGE CONTENTS
 //////////////////////////////////////////////// 
 
-	/// print out the tabbed question type selector and any qoption checkbox that may exist
-		echo '<b>'.get_string("questiontype", "languagelesson").":</b> \n";
-		echo helpbutton("questiontypes", get_string("questiontype", "languagelesson"), "languagelesson")."<br />";
-		languagelesson_qtype_menu($LL_QUESTION_TYPE, $page->qtype, 
-						  "lesson.php?id=$cm->id&amp;action=editpage&amp;pageid=$page->id",
-						  "getElementById('editpage').redisplay.value=1;getElementById('editpage').submit();");
+		// print out the tabbed question type selector and any qoption checkbox that may exist
+		if ($page->qtype != LL_BRANCHTABLE) {
+			echo '<b>'.get_string("questiontype", "languagelesson").":</b> \n";
+			echo helpbutton("questiontypes", get_string("questiontype", "languagelesson"), "languagelesson")."<br />";
+			languagelesson_qtype_menu($LL_QUESTION_TYPE, $page->qtype, 
+							  "lesson.php?id=$cm->id&amp;action=editpage&amp;pageid=$page->id",
+							  "getElementById('editpage').redisplay.value=1;getElementById('editpage').submit();");
+		}
 
 		// handle the question types that include a possible qoption
 		switch ($page->qtype) {
@@ -195,7 +202,9 @@
 
 	////////////////////////////////////////////////
 	// Boxes for pre-existing answers
-	if ($answers = get_records("languagelesson_answers", "pageid", $page->id, "id")) {
+	if ($page->qtype != LL_BRANCHTABLE
+			&& $page->qtype != LL_CLUSTER
+			&& $answers = get_records("languagelesson_answers", "pageid", $page->id, "id")) {
 
 		// if this is a CLOZE or MATCHING type, feedbacks are stored as their own answers, so init the feedbacks array
 		if ($page->qtype == LL_CLOZE || $page->qtype == LL_MATCHING) { $feedbacks = array(); }
@@ -305,20 +314,6 @@
 					echo "</td></tr></table></td></tr>";
 					break;
 
-				case LL_BRANCHTABLE:
-				case LL_ENDOFBRANCH:
-				case LL_CLUSTER:
-				case LL_ENDOFCLUSTER:
-					echo '<tr><td><table><tr><td class="answerrow_cell">';
-					echo "<b><label for=\"edit-answer[$n]\">".get_string("description", "languagelesson")."
-						$nplus1:</label></b><br />\n";
-					print_textarea(false, 1, 40, 0, 0, "answer[$n]", $answer->answer);
-					echo '</td><td class="answerrow_cell">';
-					echo "<b>".get_string("jump", "languagelesson")." $nplus1:</b><br />\n";
-					choose_from_menu($jump, "jumpto[$n]", $answer->jumpto, "");
-					helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
-					echo "</td></tr></table></td></tr>\n";
-					break;
 				default :
 					break;
 			}
@@ -326,7 +321,27 @@
 			$n++;
 		}
 	}
+	
+	else if ($page->qtype == LL_BRANCHTABLE && $branches = get_records('languagelesson_branches', 'parentid', $page->id, 'ordering')) {
+		$n = 0;
+		foreach ($branches as $branch) {
+			$nplus1 = $n+1;
+			echo '<tr><td><table><tr><td class="answerrow_cell">';
+			echo "<b><label for=\"edit-answer[$n]\">".get_string("branchtitle", "languagelesson")."
+				$nplus1:</label></b><br />\n";
+			print_textarea(false, 1, 40, 0, 0, "answer[$n]", $branch->title);
+			echo '</td><td class="answerrow_cell">';
+			echo "<b>".get_string("jump", "languagelesson")." $nplus1:</b><br />\n";
+			choose_from_menu($jump, "jumpto[$n]", $branch->firstpage, "");
+			helpbutton("jumpto", get_string("jump", "languagelesson"), "languagelesson");
+			echo "</td></tr></table></td></tr>\n";
+			$n++;
+		}
+	}
 
+	else if ($page->qtype == LL_CLUSTER) {
+		error('Clusters don\'t work yet!');
+	}
 
 	////////////////////////////////////////////////
 	// Additional (empty) answer boxes
@@ -406,7 +421,7 @@
 					break;
 				case LL_BRANCHTABLE:
 					echo '<tr><td><table><tr><td class="answerrow_cell">';
-					echo "<b>".get_string("description", "languagelesson")." $iplus1:</b><br />\n";
+					echo "<b>".get_string("branchtitle", "languagelesson")." $iplus1:</b><br />\n";
 					print_textarea(false, 1, 40, 0, 0, "answer[$i]");
 					echo '</td><td class="answerrow_cell">';
 					echo "<b>".get_string("jump", "languagelesson")." $iplus1:</b><br />\n";

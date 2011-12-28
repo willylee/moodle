@@ -65,7 +65,6 @@ $string['deletedpage'] = 'Deleted page';
 $string['deleting'] = 'Deleting';
 $string['deletingpage'] = 'Deleting page: $a';
 $string['dependencyon'] = 'Dependent on';
-$string['description'] = 'Description';
 $string['detailedstats'] = 'Detailed statistics';
 $string['didnotanswerquestion'] = 'Did not answer this question.';
 $string['didnotreceivecredit'] = 'Did not receive credit';
@@ -454,4 +453,6 @@ $string['gradessaved'] = 'Custom grades assigned';
 $string['add4moreanswerfields'] = 'Add 4 more answer fields';
 
 $string['defaultpoints'] = 'Default points per question';
+
+$string['branchtitle'] = 'Title of branch';
 ?>
