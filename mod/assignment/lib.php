@@ -3246,7 +3246,7 @@ function assignment_get_types() {
     $type->typestr = '--'.get_string('modulenameplural', 'assignment');
     $types[] = $type;
 
-    $standardassignments = array('upload','online','uploadsingle','offline');
+    $standardassignments = array('upload','online','uploadsingle','offline','audio','video');
     foreach ($standardassignments as $assignmenttype) {
         $type = new object();
         $type->modclass = MOD_CLASS_ACTIVITY;

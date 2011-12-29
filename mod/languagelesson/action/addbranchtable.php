@@ -29,7 +29,8 @@
 		$prevPage = get_record('languagelesson_pages', 'id', $pageid);
 		$pages = get_records_select('languagelesson_pages', "ordering > $prevPage->ordering and lessonid=$lesson->id " .
 															(($prevPage->branchid) ? "and branchid = $prevPage->branchid
-															 						  and qtype != ".LL_ENDOFBRANCH : ''));
+															 						  and qtype != ".LL_ENDOFBRANCH : ''),
+									'ordering');
 	}
 
 	// now use this to generate a Javascript base array, chunks of which can then be selected to dynamically update later branching
@@ -56,7 +57,7 @@
 	// init to include only the default endoflesson choice
     $jump[0] = '--';
 	// now, if there are pages after where this BT is getting created, populate the list with them
-	if (!$firstpage) {
+	if (!$firstpage && $pages) {
 		//$pages = get_records('languagelesson_pages', 'lessonid', $lesson->id, 'ordering');
 		foreach ($pages as $apageid => $apage) {
 			$jump[$apageid] = $apage->title;

@@ -534,18 +534,26 @@ function languagelesson_print_page_actions($cmid, $page, $printmove, $printaddpa
     $actions = array();
     
     if (has_capability('mod/languagelesson:edit', $context)) {
-        if ($printmove) {
-            $actions[] = "<a title=\"".get_string('move')."\" href=\"$CFG->wwwroot/mod/languagelesson/lesson.php?id=$cmid&amp;action=move&amp;pageid=$page->id\">
-                          <img src=\"$CFG->pixpath/t/move.gif\" class=\"iconsmall\" alt=\"".get_string('move')."\" /></a>\n";
+        if ($printmove && $page->qtype != LL_BRANCHTABLE) {
+			$actions[] = "<a title=\"".get_string('move')."\"
+				href=\"$CFG->wwwroot/mod/languagelesson/lesson.php?id=$cmid&amp;action=move&amp;pageid=$page->id\">
+				  <img src=\"$CFG->pixpath/t/move.gif\" class=\"iconsmall\" alt=\"".get_string('move')."\" /></a>\n";
         }
-        $actions[] = "<a title=\"".get_string('update')."\" href=\"$CFG->wwwroot/mod/languagelesson/lesson.php?id=$cmid&amp;action=editpage&amp;pageid=$page->id\">
-                      <img src=\"$CFG->pixpath/t/edit.gif\" class=\"iconsmall\" alt=\"".get_string('update')."\" /></a>\n";
+
+		if ($page->qtype != LL_ENDOFBRANCH) {
+			$actions[] = "<a title=\"".get_string('update')."\"
+				href=\"$CFG->wwwroot/mod/languagelesson/lesson.php?id=$cmid&amp;action=editpage&amp;pageid=$page->id\">
+				  <img src=\"$CFG->pixpath/t/edit.gif\" class=\"iconsmall\" alt=\"".get_string('update')."\" /></a>\n";
         
-        $actions[] = "<a title=\"".get_string('preview')."\" href=\"$CFG->wwwroot/mod/languagelesson/view.php?id=$cmid&amp;pageid=$page->id\">
-                      <img src=\"$CFG->pixpath/t/preview.gif\" class=\"iconsmall\" alt=\"".get_string('preview')."\" /></a>\n";
+			$actions[] = "<a title=\"".get_string('preview')."\"
+				href=\"$CFG->wwwroot/mod/languagelesson/view.php?id=$cmid&amp;pageid=$page->id\">
+				  <img src=\"$CFG->pixpath/t/preview.gif\" class=\"iconsmall\" alt=\"".get_string('preview')."\" /></a>\n";
         
-        $actions[] = "<a title=\"".get_string('delete')."\" href=\"$CFG->wwwroot/mod/languagelesson/lesson.php?id=$cmid&amp;sesskey=".sesskey()."&amp;action=confirmdelete&amp;pageid=$page->id\">
-                      <img src=\"$CFG->pixpath/t/delete.gif\" class=\"iconsmall\" alt=\"".get_string('delete')."\" /></a>\n";
+			$actions[] = "<a title=\"".get_string('delete')."\"
+				href=\"$CFG->wwwroot/mod/languagelesson/lesson.php?id=$cmid&amp;sesskey=".sesskey()
+				."&amp;action=confirmdelete&amp;pageid=$page->id\">
+				  <img src=\"$CFG->pixpath/t/delete.gif\" class=\"iconsmall\" alt=\"".get_string('delete')."\" /></a>\n";
+		}
         
         if ($printaddpage) {
             // Add page drop-down
@@ -553,7 +561,6 @@ function languagelesson_print_page_actions($cmid, $page, $printmove, $printaddpa
             //$options['addcluster&amp;sesskey='.sesskey()]      = get_string('clustertitle', 'languagelesson');
             //$options['addendofcluster&amp;sesskey='.sesskey()] = get_string('endofclustertitle', 'languagelesson');
             $options['addbranchtable']                         = get_string('branchtable', 'languagelesson');
-            //$options['addendofbranch&amp;sesskey='.sesskey()]  = get_string('endofbranch', 'languagelesson');
             $options['addpage']                                = get_string('question', 'languagelesson');
             // Base url
             $common = "$CFG->wwwroot/mod/languagelesson/lesson.php?id=$cmid&amp;pageid=$page->id&amp;action=";

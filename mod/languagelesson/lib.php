@@ -84,6 +84,9 @@ function languagelesson_delete_instance($id) {
     if (! delete_records("languagelesson_pages", "lessonid", "$lesson->id")) {
         $result = false;
     }
+    if (! delete_records("languagelesson_branches", "lessonid", "$lesson->id")) {
+        $result = false;
+    }
     if (! delete_records("languagelesson_answers", "lessonid", "$lesson->id")) {
         $result = false;
     }
