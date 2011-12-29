@@ -24,204 +24,190 @@
 		languagelesson_validate_cloze_text(stripslashes($form->contents), $form->answer, $form->dropdown);
 	}
 
+
+
+
+/////////////////////////////////////////////////
+// THE PAGE RECORD
+/////////////////////////////////////////////////
+
+	// now build the newpage object
     $newpage = new stdClass;
-    $newanswer = new stdClass;
+	$newpage->lessonid = clean_param($lesson->id, PARAM_INT);
+	$newpage->timecreated = $timenow;
+	$newpage->qtype = clean_param($form->qtype, PARAM_INT);
+	$newpage->qoption = ((isset($form->qoption)) ? clean_param($form->qoption, PARAM_INT) : 0);
+	$newpage->layout = ((isset($form->layout)) ? clean_param($form->layout, PARAM_INT) : 0);
+	$newpage->title = addslashes(clean_param($form->title, PARAM_CLEANHTML));
+	$newpage->contents = addslashes(trim($form->contents));
+
+	// set the prevpageid, nextpageid, branchid, and ordering values, which depend on the place of the page
     if ($form->pageid) {
         // the new page is not the first page
-        if (!$page = get_record("languagelesson_pages", "id", $form->pageid)) {
+        if (!$prevPage = get_record("languagelesson_pages", "id", $form->pageid)) {
             error("Insert page: page record not found");
         }
-        $newpage->lessonid = clean_param($lesson->id, PARAM_INT);
         $newpage->prevpageid = clean_param($form->pageid, PARAM_INT);
-        $newpage->nextpageid = clean_param($page->nextpageid, PARAM_INT);
+        $newpage->nextpageid = clean_param($prevPage->nextpageid, PARAM_INT);
 		// set the ordering value for the new page as the order val for prev page + 1
 		$lastOrderVal = get_field('languagelesson_pages', 'ordering', 'id', $newpage->prevpageid);
 		$newpage->ordering = $lastOrderVal + 1;
-		// set the branchid value for the new page to the branchid of the preceding page
-		$newpage->branchid = $page->branchid;
-        $newpage->timecreated = $timenow;
-        $newpage->qtype = $form->qtype;
-        if (isset($form->qoption)) {
-            $newpage->qoption = clean_param($form->qoption, PARAM_INT);
-        } else {
-            $newpage->qoption = 0;
-        }
-        if (isset($form->layout)) {
-            $newpage->layout = clean_param($form->layout, PARAM_INT);
-        } else {
-            $newpage->layout = 0;
-        }
-        $newpage->title = clean_param($form->title, PARAM_CLEANHTML);
-        $newpage->contents = trim($form->contents);
-        $newpage->title = addslashes($newpage->title);
-        $newpageid = insert_record("languagelesson_pages", $newpage);
-        if (!$newpageid) {
-            error("Insert page: new page not inserted");
-        }
-        // update the linked list (point the previous page to this new one)
-        if (!set_field("languagelesson_pages", "nextpageid", $newpageid, "id", $newpage->prevpageid)) {
-            error("Insert page: unable to update next link");
-        }
-        if ($page->nextpageid) {
-            // new page is not the last page
-            if (!set_field("languagelesson_pages", "prevpageid", $newpageid, "id", $page->nextpageid)) {
-                error("Insert page: unable to update previous link");
-            }
-        }
+		// set the branchid value for the new page to the branchid of the preceding page, unless the previous page is a branch table,
+		// in which case set it to the ID of the BT's first branch
+		if ($prevPage->qtype == LL_BRANCHTABLE) {
+			$newpage->branchid = get_field('languagelesson_branches', 'id', 'parentid', $prevPage->id, 'ordering', 1);
+		} else {
+			$newpage->branchid = $prevPage->branchid;
+		}
     } else {
         // new page is the first page
-        // get the existing (first) page (if any)
-        if (!$page = get_record_select("languagelesson_pages", "lessonid = $lesson->id AND prevpageid = 0")) {
+		$newpage->prevpageid = 0; // this is a first page
+		$newpage->ordering = 1; // this is the first page
+
+        // get the existing (first) page (if any) to set the nextpageid value
+        if (!$prevPage = get_record_select("languagelesson_pages", "lessonid = $lesson->id AND prevpageid = 0")) {
             // there are no existing pages
-            $newpage->lessonid = $lesson->id;
-            $newpage->prevpageid = 0; // this is a first page
             $newpage->nextpageid = 0; // this is the only page
-            $newpage->timecreated = $timenow;
-            $newpage->qtype = clean_param($form->qtype, PARAM_INT);
-            if (isset($form->qoption)) {
-                $newpage->qoption = clean_param($form->qoption, PARAM_INT);
-            } else {
-                $newpage->qoption = 0;
-            }
-            if (isset($form->layout)) {
-                $newpage->layout = clean_param($form->layout, PARAM_INT);
-            } else {
-                $newpage->layout = 0;
-            }
-            $newpage->title = clean_param($form->title, PARAM_CLEANHTML);
-            $newpage->contents = trim($form->contents);
-            $newpage->title = addslashes($newpage->title);
-            $newpageid = insert_record("languagelesson_pages", $newpage);
-            if (!$newpageid) {
-                error("Insert page: new first page not inserted");
-            }
         } else {
-            // there are existing pages put this at the start
-            $newpage->lessonid = $lesson->id;
-            $newpage->prevpageid = 0; // this is a first page
-            $newpage->nextpageid = $page->id;
-            $newpage->timecreated = $timenow;
-            $newpage->qtype = clean_param($form->qtype, PARAM_INT);
-            if (isset($form->qoption)) {
-                $newpage->qoption = clean_param($form->qoption, PARAM_INT);
-            } else {
-                $newpage->qoption = 0;
-            }
-            if (isset($form->layout)) {
-                $newpage->layout = clean_param($form->layout, PARAM_INT);
-            } else {
-                $newpage->layout = 0;
-            }
-            $newpage->title = clean_param($form->title, PARAM_CLEANHTML);
-            $newpage->contents = trim($form->contents);
-            $newpage->title = addslashes($newpage->title);
-            $newpageid = insert_record("languagelesson_pages", $newpage);
-            if (!$newpageid) {
-                error("Insert page: first page not inserted");
-            }
+            // there are existing pages put this before what was the first one
+			$newpage->nextpageid = $prevPage->id;
             // update the linked list
             if (!set_field("languagelesson_pages", "prevpageid", $newpageid, "id", $newpage->nextpageid)) {
                 error("Insert page: unable to update link");
             }
-        }
-    }
-    // now add the answers
-    if ($form->qtype == LL_ESSAY || $form->qtype == LL_AUDIO || $form->qtype == LL_VIDEO) {
-        $newanswer->lessonid = $lesson->id;
-        $newanswer->pageid = $newpageid;
-        $newanswer->timecreated = $timenow;
-        if (isset($form->jumpto[0])) {
-            $newanswer->jumpto = clean_param($form->jumpto[0], PARAM_INT);
-        }
-        if (isset($form->score[0])) {
-            $newanswer->score = clean_param($form->score[0], PARAM_NUMBER);
-        }
-        $newanswerid = insert_record("languagelesson_answers", $newanswer);
-        if (!$newanswerid) {
-            error("Insert Page: answer record not inserted");
-        }
-    } elseif ($form->qtype != LL_BRANCHTABLE) {
-        $maxanswers = $form->maxanswers;
-        if ($form->qtype == LL_MATCHING) {
-            // need to add two to offset correct response and wrong response
-            $maxanswers = $maxanswers + 2;
-        }
-        for ($i = 0; $i < $maxanswers; $i++) {
-			// re-initialize to a blank answer object
-			$newanswer = new stdClass();
-            if (!empty($form->answer[$i]) and trim(strip_tags($form->answer[$i]))) { // strip_tags because the HTML editor adds <p><br />
-                $newanswer->lessonid = $lesson->id;
-                $newanswer->pageid = $newpageid;
-                $newanswer->timecreated = $timenow;
-                $newanswer->answer = trim($form->answer[$i]);
-				// if this is a CLOZE, need a hard-coded way to distinguish ordering of questions, so note that here
-				if ($form->qtype == LL_CLOZE) { $newanswer->answer = $i.'|'.$newanswer->answer; }
-                if (isset($form->response[$i])) {
-                    $newanswer->response = trim($form->response[$i]);
-                }
-                if (isset($form->jumpto[$i])) {
-                    $newanswer->jumpto = clean_param($form->jumpto[$i], PARAM_INT);
-                }
-                if (isset($form->score[$i])) {
-                    $newanswer->score = clean_param($form->score[$i], PARAM_NUMBER);
-                }
-				// if this is a cloze subquestion marked as a dropdown, save it as such
-				if ($form->qtype == LL_CLOZE && isset($form->dropdown[$i])) {
-					$newanswer->flags = 1;
-				}
-                $newanswerid = insert_record("languagelesson_answers", $newanswer);
-                if (!$newanswerid) {
-                    error("Insert Page: answer record $i not inserted");
-                }
-            } else {
-                if ($form->qtype == LL_MATCHING) {
-                    if ($i < 2) {
-                        $newanswer->lessonid = $lesson->id;
-                        $newanswer->pageid = $newpageid;
-                        $newanswer->timecreated = $timenow;
-                        $newanswerid = insert_record("languagelesson_answers", $newanswer);
-                        if (!$newanswerid) {
-                            error("Insert Page: answer record $i not inserted");
-                        }
-                    }
-				} else {
-					break;
-				}
-			}
 		}
-		// if this is a CLOZE type, then the responses are not associated with specific answers, so save them here on their own
-		if ($form->qtype == LL_CLOZE) {
-			// initialize the answer template to save the responses with
-			$newanswer = new stdClass();
+    }
+
+	// insert the page record
+	$newpageid = insert_record("languagelesson_pages", $newpage);
+	if (!$newpageid) {
+		error("Insert page: new page not inserted");
+	}
+
+	// update the linked list (point the previous page to this new one)
+	if ($newpage->prevpageid && !set_field("languagelesson_pages", "nextpageid", $newpageid, "id", $newpage->prevpageid)) {
+		error("Insert page: unable to update next link");
+	}
+	if ($prevPage && $prevPage->nextpageid && !set_field("languagelesson_pages", "prevpageid", $newpageid, "id", $prevPage->nextpageid)) {
+		// new page is not the last page
+		error("Insert page: unable to update previous link");
+	}
+
+	// update the ordering values of pages after this one
+	if ($upages = get_records_select('languagelesson_pages', "lessonid=$lesson->id and ordering >= $newpage->ordering and id !=
+				$newpageid")) {
+		foreach ($upages as $upage) {
+			set_field('languagelesson_pages', 'ordering', $upage->ordering + 1, 'id', $upage->id);
+		}
+	}
+
+	// if the page was inserted at the start of a branch table, update the firstpage pointer of the first branch
+	if ($prevPage && $prevPage->qtype == LL_BRANCHTABLE) {
+		set_field('languagelesson_branches', 'firstpage', $newpageid, 'id', $newpage->branchid);
+	}
+
+
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+
+
+
+
+/////////////////////////////////////////////////
+// ANSWERS (IF APPLICABLE)
+/////////////////////////////////////////////////
+	if ($form->qtype != LL_BRANCHTABLE) {
+		if ($form->qtype == LL_ESSAY || $form->qtype == LL_AUDIO || $form->qtype == LL_VIDEO) {
+			$newanswer = new stdClass;
 			$newanswer->lessonid = $lesson->id;
 			$newanswer->pageid = $newpageid;
 			$newanswer->timecreated = $timenow;
-
-			// set the responses
-			if (isset($form->correctresponse)) {
-				$newanswer->response = trim($form->correctresponse);
-				$newanswer->score = $form->correctresponsescore;
-				$newanswer->jumpto = clean_param($form->correctanswerjump, PARAM_INT);
-				if (!$newanswerid = insert_record('languagelesson_answers', $newanswer)) {
-					error("Insert page: correct response not inserted");
+			if (isset($form->jumpto[0])) { $newanswer->jumpto = clean_param($form->jumpto[0], PARAM_INT); }
+			if (isset($form->score[0])) { $newanswer->score = clean_param($form->score[0], PARAM_NUMBER); }
+			$newanswerid = insert_record("languagelesson_answers", $newanswer);
+			if (!$newanswerid) {
+				error("Insert Page: answer record not inserted");
+			}
+		} else {
+			$maxanswers = $form->maxanswers;
+			if ($form->qtype == LL_MATCHING) {
+				// need to add two to offset correct response and wrong response
+				$maxanswers = $maxanswers + 2;
+			}
+			for ($i = 0; $i < $maxanswers; $i++) {
+				// re-initialize to a blank answer object
+				$newanswer = new stdClass();
+				$newanswer->lessonid = $lesson->id;
+				$newanswer->pageid = $newpageid;
+				$newanswer->timecreated = $timenow;
+				if (!empty($form->answer[$i]) and trim(strip_tags($form->answer[$i]))) { // strip_tags because the HTML editor adds <p><br />
+					$newanswer->answer = trim($form->answer[$i]);
+					// if this is a CLOZE, need a hard-coded way to distinguish ordering of questions, so note that here
+					if ($form->qtype == LL_CLOZE) { $newanswer->answer = $i.'|'.$newanswer->answer; }
+					if (isset($form->response[$i])) { $newanswer->response = trim($form->response[$i]); }
+					if (isset($form->jumpto[$i])) { $newanswer->jumpto = clean_param($form->jumpto[$i], PARAM_INT);	}
+					if (isset($form->score[$i])) { $newanswer->score = clean_param($form->score[$i], PARAM_NUMBER);	}
+					// if this is a cloze subquestion marked as a dropdown, save it as such
+					if ($form->qtype == LL_CLOZE && isset($form->dropdown[$i])) {
+						$newanswer->flags = 1;
+					}
+				} else if ($form->qtype != LL_MATCHING) {
+					break;
+				}
+				$newanswerid = insert_record("languagelesson_answers", $newanswer);
+				if (!$newanswerid) {
+					error("Insert Page: answer record $i not inserted");
 				}
 			}
 
-			if (isset($form->wrongresponse)) {
-				$newanswer->response = trim($form->wrongresponse);
-				$newanswer->score = $form->wrongresponsescore;
-				$newanswer->jumpto = clean_param($form->wronganswerjump, PARAM_INT);
-				if (!$newanswerid = insert_record('languagelesson_answers', $newanswer)) {
-					error("Insert page: wrong response not inserted");
+			// if this is a CLOZE type, then the responses are not associated with specific answers, so save them here on their own
+			if ($form->qtype == LL_CLOZE) {
+				// initialize the answer template to save the responses with
+				$newanswer = new stdClass();
+				$newanswer->lessonid = $lesson->id;
+				$newanswer->pageid = $newpageid;
+				$newanswer->timecreated = $timenow;
+
+				// set the responses
+				if (isset($form->correctresponse)) {
+					$newanswer->response = trim($form->correctresponse);
+					$newanswer->score = $form->correctresponsescore;
+					$newanswer->jumpto = clean_param($form->correctanswerjump, PARAM_INT);
+					if (!$newanswerid = insert_record('languagelesson_answers', $newanswer)) {
+						error("Insert page: correct response not inserted");
+					}
+				}
+
+				if (isset($form->wrongresponse)) {
+					$newanswer->response = trim($form->wrongresponse);
+					$newanswer->score = $form->wrongresponsescore;
+					$newanswer->jumpto = clean_param($form->wronganswerjump, PARAM_INT);
+					if (!$newanswerid = insert_record('languagelesson_answers', $newanswer)) {
+						error("Insert page: wrong response not inserted");
+					}
 				}
 			}
-        }
-    }
+		}
+    
 
+		// Now that setting answers is done, update the languagelesson instance's calculated max grade
+		languagelesson_recalculate_maxgrade($lesson->id);
+
+	}
+
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+
+
+
+
+/////////////////////////////////////////////////
+// BRANCHES (IF APPLICABLE)
+/////////////////////////////////////////////////
 
 
 	// if we just inserted a branch table, handle creating branch records and ENDOFBRANCH page records here
-	else if ($form->qtype == LL_BRANCHTABLE) {
+	else {
         $maxanswers = $form->maxanswers;
 		
 		//init array to hold $branch objects for use in ENDOFBRANCH page population
@@ -339,9 +325,10 @@
 
 	}
 
-    
-	// Now that setting answers is done, update the languagelesson instance's calculated max grade
-	recalculate_maxgrade($lesson->id);
+
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+
 
 
     languagelesson_set_message(get_string('insertedpage', 'languagelesson').': '.format_string($newpage->title, true), 'notifysuccess');

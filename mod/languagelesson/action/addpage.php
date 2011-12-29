@@ -27,17 +27,10 @@
     }
     if (!optional_param('firstpage', 0, PARAM_INT)) {
         $linkadd = "";      
-        $apageid = get_field("languagelesson_pages", "id", "lessonid", $lesson->id, "prevpageid", 0);
-        
-        while (true) {
-            if ($apageid) {
-                $title = get_field("languagelesson_pages", "title", "id", $apageid);
-                $jump[$apageid] = strip_tags(format_string($title,true));
-                $apageid = get_field("languagelesson_pages", "nextpageid", "id", $apageid);
-            } else {
-                // last page reached
-                break;
-            }
+
+		$pages = get_records('languagelesson_pages', 'lessonid', $lesson->id, 'ordering');
+		foreach ($pages as $apage) {
+			$jump[$apage->id] = strip_tags(format_string($apage->title,true));
         }
     } else {
         $linkadd = "&amp;firstpage=1";

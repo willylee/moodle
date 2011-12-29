@@ -10,10 +10,6 @@
     $CFG->pagepath = 'mod/languagelesson/addbranchtable';
     
 	
-	/*
-	NOT YET USED
-	WAITING ON IMPLEMENTATION OF POPULATING BRANCHID VALUES
-
 	// branch jump options include pages fitting all of the following conditions
 	// - following where this BT is getting inserted
 	// - if this BT is nested (inserted inside a branch of another BT), only include the pages in the same branch
@@ -31,11 +27,26 @@
 	//   - not the ENDOFBRANCH page
     if (!$firstpage = optional_param('firstpage', 0, PARAM_INT)) {
 		$prevPage = get_record('languagelesson_pages', 'id', $pageid);
-		$pages = get_records_select('languagelesson_pages', "ordering > $prevPage->ordering" .
+		$pages = get_records_select('languagelesson_pages', "ordering > $prevPage->ordering and lessonid=$lesson->id " .
 															(($prevPage->branchid) ? "and branchid = $prevPage->branchid
 															 						  and qtype != ".LL_ENDOFBRANCH : ''));
 	}
-	*/
+
+	// now use this to generate a Javascript base array, chunks of which can then be selected to dynamically update later branching
+	// options as earlier branches are chosen
+	?>
+	<script type="text/javascript">
+
+	var basePages = array();
+	basePages[0] = '--';
+	<?php
+	foreach ($pages as $page) {
+		echo "basePages[$page->id] = '$page->title';\n";
+	}
+	?>
+
+	</script>
+	<?php
 
 	$pageid = required_param('pageid', PARAM_INT);
 	$firstpage = optional_param('firstpage', 0, PARAM_INT);
@@ -46,7 +57,7 @@
     $jump[0] = '--';
 	// now, if there are pages after where this BT is getting created, populate the list with them
 	if (!$firstpage) {
-		$pages = get_records('languagelesson_pages', 'lessonid', $lesson->id, 'ordering');
+		//$pages = get_records('languagelesson_pages', 'lessonid', $lesson->id, 'ordering');
 		foreach ($pages as $apageid => $apage) {
 			$jump[$apageid] = $apage->title;
 		}
@@ -100,7 +111,7 @@
     for ($i = 0; $i < $maxanswers; $i++) {
         $iplus1 = $i + 1;
         echo '<tr><td><table><tr><td class="answerrow_cell">';
-		echo "<b>".get_string("branchtitle", "languagelesson")." $iplus2:</b><br />\n";
+		echo "<b>".get_string("branchtitle", "languagelesson")." $iplus1:</b><br />\n";
         print_textarea(false, 1, 40, 0, 0, "answer[$i]", ((isset($data->answer[$i])) ? $data->answer[$i] : '')); 
 		echo '</td><td class="answerrow_cell">';
         echo "<b>".get_string("jump", "languagelesson")." $iplus1:</b><br />\n";

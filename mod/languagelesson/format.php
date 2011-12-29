@@ -316,7 +316,7 @@ class qformat_default {
         
 
 		// update the calculated max score for this lesson
-		recalculate_maxgrade($lesson->id);
+		languagelesson_recalculate_maxgrade($lesson->id);
         
         
         return true;

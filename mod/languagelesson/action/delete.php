@@ -68,15 +68,23 @@
     }
 
 	// repair the hole in the ordering
-	$changePages = get_records_select('languagelesson_pages', "ordering > $thispage->ordering", 'ordering');
-	foreach ($changePages as $page) {
-		if (!set_field('languagelesson_pages', 'ordering', $page->ordering - 1, 'id', $page->id)) {
-			error('Delete: unable to update ordering value');
+	if ($changePages = get_records_select('languagelesson_pages', "ordering > $thispage->ordering", 'ordering')) {
+		foreach ($changePages as $page) {
+			if (!set_field('languagelesson_pages', 'ordering', $page->ordering - 1, 'id', $page->id)) {
+				error('Delete: unable to update ordering value');
+			}
+		}
+	}
+
+	// if this was the first page in a branch, update the firstpage value for that branch
+	if ($thispage->branchid && $thispage->id == get_field('languagelesson_branches', 'firstpage', 'id', $thispage->branchid)) {
+		if(! set_field('languagelesson_branches', 'firstpage', $thispage->nextpageid, 'id', $thispage->branchid)) {
+			error("Delete page: could not update firstpage value of branch");
 		}
 	}
 
 	// update the lesson's calculated max grade
-	recalculate_maxgrade($lesson->id);
+	languagelesson_recalculate_maxgrade($lesson->id);
 
     languagelesson_set_message(get_string('deletedpage', 'languagelesson').': '.format_string($thispage->title, true), 'notifysuccess');
     redirect("$CFG->wwwroot/mod/languagelesson/edit.php?id=$cm->id");

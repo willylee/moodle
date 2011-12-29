@@ -3476,13 +3476,19 @@ function languagelesson_validate_cloze_text($html, $answertexts, $dropdowns) {
  *
  * @param int $lessonid The ID of the lesson to update
  */
-function recalculate_maxgrade($lessonid) {
+function languagelesson_recalculate_maxgrade($lessonid) {
 	// initialize the array containing pageID => best score
 	$bestscores = array();
 
 	// pull all pages and answers
-	$pages = get_records('languagelesson_pages', 'lessonid', $lessonid);
-	$answers = get_records('languagelesson_answers', 'lessonid', $lessonid);
+	if ( (!$pages = get_records('languagelesson_pages', 'lessonid', $lessonid))
+			|| (!$answers = get_records('languagelesson_answers', 'lessonid', $lessonid))) {
+		// update the instance's set grade value to 0, since it's apparently empty
+		if (! set_field('languagelesson', 'grade', 0, 'id', $lessonid)) {
+			error('Updatepage: Could not update languagelesson instance saved max grade');
+		}
+		return;
+	}
 	
 	// construct the array storing page => [answers]
 	$answersByPageID = array();

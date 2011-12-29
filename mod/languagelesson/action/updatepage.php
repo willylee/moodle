@@ -248,7 +248,7 @@
 
 
 	// Now that setting answers is done, update the languagelesson instance's calculated max grade
-	recalculate_maxgrade($lesson->id);
+	languagelesson_recalculate_maxgrade($lesson->id);
 
 
     if ($form->redisplay) {

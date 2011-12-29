@@ -11,14 +11,15 @@
     $title = get_field("languagelesson_pages", "title", "id", $pageid);
     print_heading(get_string("moving", "languagelesson", format_string($title)));
    
-    if (!$page = get_record_select("languagelesson_pages", "lessonid = $lesson->id AND prevpageid = 0")) {
-        error("Move: first page not found");
-    }
-
     echo "<center><table cellpadding=\"5\" border=\"1\">\n";
     echo "<tr><td><a href=\"lesson.php?id=$cm->id&amp;sesskey=".$USER->sesskey."&amp;action=moveit&amp;pageid=$pageid&amp;after=0\"><small>".
         get_string("movepagehere", "languagelesson")."</small></a></td></tr>\n";
-    while (true) {
+
+	if (! $pages = get_records('languagelesson_pages', 'lessonid', $lesson->id, 'ordering')) {
+		error('Move: pages not found!');
+	}
+
+	foreach ($pages as $page) {
         if ($page->id != $pageid) {
             if (!$title = trim(format_string($page->title))) {
                 $title = "<< ".get_string("notitle", "languagelesson")."  >>";
@@ -26,14 +27,6 @@
             echo "<tr><td><b>$title</b></td></tr>\n";
             echo "<tr><td><a href=\"lesson.php?id=$cm->id&amp;sesskey=".$USER->sesskey."&amp;action=moveit&amp;pageid=$pageid&amp;after={$page->id}\"><small>".
                 get_string("movepagehere", "languagelesson")."</small></a></td></tr>\n";
-        }
-        if ($page->nextpageid) {
-            if (!$page = get_record("languagelesson_pages", "id", $page->nextpageid)) {
-                error("Teacher view: Next page not found!");
-            }
-        } else {
-            // last page reached
-            break;
         }
     }
     echo "</table>\n";

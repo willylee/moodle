@@ -14,16 +14,11 @@
     }
     $after = required_param('after', PARAM_INT); // target page
 
-	// store the old ordering value of the page being moved
-	$oldOrderVal = $page->ordering;
-
     // first step. determine the new first page
     // (this is done first as the current first page will be lost in the next step)
     if (!$after) {
         // the moved page is the new first page
         $newfirstpageid = $pageid;
-		// set the minimum ordering value to start modifying from to 0
-		$newOrderVal = 0;
         // reset $after so that is points to the last page 
         // (when the pages are in a ring this will in effect be the first page)
         if ($page->nextpageid) {
@@ -43,12 +38,6 @@
             error("Moveit: current first page id not found");
         }
     }
-	
-	// if we haven't set $newOrderVal yet, then we're moving this page somewhere not at the beginning, so pull $newOrderVal
-	if (! isset($newOrderVal)) {
-		$newOrderVal = get_field('languagelesson_pages', 'ordering', 'id', $after);
-		$newOrderVal++;
-	}
 
     // the rest is all unconditional...
     
@@ -109,43 +98,49 @@
             error("Moveit: unable to update link");
     }
 
-	// sixth step: update ordering values
-	// CASE 1: moved the page forward in the lesson, so need to update the ordering value of pages between the old location and the new
-	// location
-	if ($oldOrderVal < $newOrderVal) {
-		$changePages = get_records_select('languagelesson_pages', "lessonid=$lesson->id
-																	and ordering > $oldOrderVal
-																	and ordering < $newOrderVal", 'ordering');
-		// pages were fetched in proper order, so just crank through them and decrement ordering counter
-		foreach ($changePages as $page) {
-			if (!set_field('languagelesson_pages', 'ordering', $page->ordering - 1, 'id', $page->id)) {
-				error('Moveit: unable to decrement page ordering');
-			}
+	
+	
+	// handle branch stuff
+	
+	// if the page was the first page in a branch before, update the branch's firstpage value to the page's old nextpageid value
+	if ($page->branchid && $page->id == get_field('languagelesson_branches', 'firstpage', 'id', $page->branchid)) {
+		if (! set_field('languagelesson_branches', 'firstpage', $page->nextpageid, 'id', $page->branchid)) {
+			error('Moveit: unable to update branch firstpage value');
 		}
-
-		// and now set the ordering counter on the moved page
-		if (!set_field('languagelesson_pages', 'ordering', $newOrderVal - 1, 'id', $pageid)) {
-			error('Moveit: unable to update ordering value for moved page');
-		}
-
-	// CASE 2: moved the page backwards, so need to update ordering value of pages between new location and old location
-	} else {
-		$changePages = get_records_select('languagelesson_pages', "lessonid=$lesson->id
-																	and ordering < $oldOrderVal
-																	and ordering >= $newOrderVal", 'ordering');
-		// again, pages were fetch in order, so run through and increment ordering counter
-		foreach ($changePages as $page) {
-			if (!set_field('languagelesson_pages', 'ordering', $page->ordering + 1, 'id', $page->id)) {
-				error('Moveit: unable to increment page ordering');
-			}
-		}
-
-		// now set the ordering counter on the moved page
-		if (!set_field('languagelesson_pages', 'ordering', $newOrderVal, 'id', $pageid)) {
-			error('Moveit: unable to update ordering value for moved page');
-		}
-
 	}
+
+	// now if the page has a nextpage and that page is in a branch, set this page's branchid to that page's branchid value
+	// NOTE that a page can never have been moved somewhere inside a branch and NOT have a nextpage (because of ENDOFBRANCH records)
+	// similarly, no page that is not in a branch will have a next page that is in a branch, since there must be an intermediary branch
+	// table
+// TODO: error when moving a page from the head of one branch to the head of another
+	$newnextpageid = get_field('languagelesson_pages', 'nextpageid', 'id', $page->id);
+	error_log("newnextpageid is $newnextpageid");
+	error_log("thebranch is " . get_field('languagelesson_pages', 'branchid', 'id', $newnextpageid));
+	if ($newnextpageid && $thebranch = get_field('languagelesson_pages', 'branchid', 'id', $newnextpageid)) {
+		if (! set_field('languagelesson_pages', 'branchid', $thebranch, 'id', $page->id)) {
+			error('Moveit: unable to set the moved page\'s branchid');
+		} else {
+			$page->branchid = $thebranch;
+		}
+
+		// since it is in a branch, need to check if it was moved in as the first page in the branch
+		$newprevpageid = get_field('languagelesson_pages', 'prevpageid', 'id', $page->id);
+		if (get_field('languagelesson_pages', 'branchid', 'id', $newprevpageid) != $page->branchid) {
+			if (! set_field('languagelesson_branches', 'firstpage', $page->id, 'id', $page->branchid)) {
+				error('Moveit: unable to set moved page as the first page in its branch');
+			}
+		}
+	} else {
+		if (! set_field('languagelesson_pages', 'branchid', null, 'id', $page->id)) {
+			error('Moveit: unable to unset the moved page\'s branchid');
+		}
+	}
+
+
+	// since moving may have completely screwed ordering values, just rebuild the LL's ordering
+	languagelesson_update_ordering($lesson->id);
+	
 
 
     languagelesson_set_message(get_string('movedpage', 'languagelesson'), 'notifysuccess');
