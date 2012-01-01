@@ -100,11 +100,20 @@ class LanguageLessonPageDeleter {
 			case LL_BRANCHTABLE:
 				$branches = get_records('languagelesson_branches', 'parentid', $delPage->id);
 				foreach ($branches as $branch) {
+					// delete the branch's ENDOFBRANCH page
 					$eob = get_record('languagelesson_pages', 'qtype', LL_ENDOFBRANCH, 'branchid', $branch->id);
 					$this->deletePage($eob);
 
+					// delete any related seenbranch records and the branches themselves
 					$this->deleteFrom('seenbranches', 'id', $branch->id, 'could not delete seen branch records');
 					$this->deleteFrom('branches', 'id', $branch->id, 'could not delete branch record');
+
+					// and reset the branch IDs for every page that was in this branch
+					if ($branchpages = get_records('languagelesson_pages', 'branchid', $eob->branchid)) {
+						foreach($branchpages as $bpid => $bp) {
+							$this->setTo('pages', 'branchid', $delPage->branchid, 'id', $bpid, 'could not reset branchid');
+						}
+					}
 				}
 			break;
 

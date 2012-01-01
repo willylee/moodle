@@ -42,6 +42,7 @@
         case 'confirmdelete':
         case 'editpage':
         case 'move':
+        case 'moveit':
             languagelesson_print_header($cm, $course, $lesson);
         case 'addcluster':
         case 'addendofbranch':
@@ -49,7 +50,6 @@
         case 'delete':
         case 'insertpage':
         case 'updatepage':
-        case 'moveit':
             require_capability('mod/languagelesson:edit', $context);
         case 'continue':
             include($CFG->dirroot.'/mod/languagelesson/action/'.$action.'.php');

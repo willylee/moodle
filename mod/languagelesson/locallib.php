@@ -536,7 +536,7 @@ function languagelesson_print_page_actions($cmid, $page, $printmove, $printaddpa
     if (has_capability('mod/languagelesson:edit', $context)) {
         if ($printmove && $page->qtype != LL_BRANCHTABLE) {
 			$actions[] = "<a title=\"".get_string('move')."\"
-				href=\"$CFG->wwwroot/mod/languagelesson/lesson.php?id=$cmid&amp;action=move&amp;pageid=$page->id\">
+				href=\"$CFG->wwwroot/mod/languagelesson/lesson.php?id=$cmid&amp;action=move&amp;mode=showslots&amp;pageid=$page->id\">
 				  <img src=\"$CFG->pixpath/t/move.gif\" class=\"iconsmall\" alt=\"".get_string('move')."\" /></a>\n";
         }
 

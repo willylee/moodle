@@ -24,6 +24,18 @@
 		languagelesson_validate_cloze_text(stripslashes($form->contents), $form->answer, $form->dropdown);
 	}
 
+	// if it's a branch table, make sure there were branches put in to save (otherwise, do NOT want to save the page record)
+	if ($form->qtype == LL_BRANCHTABLE) {
+		$maxanswers = $form->maxanswers;
+		$hasbranches = 0;
+		for ($i = 0; $i < $maxanswers; $i++) {
+			if (! empty($form->answer[$i])) { $hasbranches=true; break; }
+		}
+		if (! $hasbranches) {
+			error('This branch table has no branches!');
+		}
+	}
+
 
 
 
@@ -52,13 +64,26 @@
 		// set the ordering value for the new page as the order val for prev page + 1
 		$lastOrderVal = get_field('languagelesson_pages', 'ordering', 'id', $newpage->prevpageid);
 		$newpage->ordering = $lastOrderVal + 1;
-		// set the branchid value for the new page to the branchid of the preceding page, unless the previous page is a branch table,
-		// in which case set it to the ID of the BT's first branch
+
+		// set the branchid of the new page:
+		// - if the preceding page is a branch table, this goes in the BT's first branch
+		// - if the preceding page is an end of branch, this gets the same branchID as whatever comes AFTER the endofbranch (e.g.
+		// a page in the next branch, or a page at the same depth level as the parent BT; if there is no following page, it gets
+		// the same branchid as the parent BT
+		// - otherwise, it's in the same branch as the preceding page
 		if ($prevPage->qtype == LL_BRANCHTABLE) {
 			$newpage->branchid = get_field('languagelesson_branches', 'id', 'parentid', $prevPage->id, 'ordering', 1);
+		} else if ($prevPage->qtype == LL_ENDOFBRANCH) {
+			if ($prevPage->nextpageid) {
+				$newpage->branchid = get_field('languagelesson_pages', 'branchid', 'id', $prevPage->nextpageid);
+			} else {
+				$parentBT = get_field('languagelesson_branches', 'parentid', 'id', $prevPage->branchid);
+				$newpage->branchid = get_field('languagelesson_pages', 'branchid', 'id', $parentBT);
+			}
 		} else {
 			$newpage->branchid = $prevPage->branchid;
 		}
+
     } else {
         // new page is the first page
 		$newpage->prevpageid = 0; // this is a first page
