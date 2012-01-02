@@ -38,8 +38,8 @@
 
 class LanguageLessonPageMover {
 
-	public $cmid;
-	public $lessonid;
+	public $cmid = 0;
+	public $lessonid = 0;
 
 	public function displaySlots($movepage) {
 		global $USER;
@@ -50,7 +50,7 @@ class LanguageLessonPageMover {
 
 
 		if ($movepage->qtype != LL_ENDOFBRANCH) {
-			echo "<tr><td><a href=\"lesson.php?id=$this->cmid&amp;sesskey=".$USER->sesskey."&amp;action=move&amp;pageid=$movepage->id"
+			echo "<tr><td><a href=\"lesson.php?id=$this->cmid&amp;sesskey=".$USER->sesskey."&amp;action=move&amp;mode=move&amp;pageid=$movepage->id"
 					."&amp;after=0\"><small>".get_string("movepagehere", "languagelesson")."</small></a></td></tr>\n";
 
 			if (! $pages = get_records('languagelesson_pages', 'lessonid', $this->lessonid, 'ordering')) {
@@ -79,7 +79,8 @@ class LanguageLessonPageMover {
 			// if the EOB being moved is the end of the last branch, it can go after any of the questions after itself at the same
 			// depth level (either all questions afterwards if at the top LL level, or the remaining questions in the containing
 			// branch if nested in a BT structure)
-			if ($nextbranchid = get_field('languagelesson_branches', 'id', 'ordering', $branch->ordering+1)) {
+			if ($nextbranchid = get_field('languagelesson_branches', 'id', 'ordering', $branch->ordering+1, 'parentid',
+						$branch->parentid)) {
 				$lastValidOrdering = get_field('languagelesson_pages', 'ordering', 'branchid', $nextbranchid, 'qtype',
 										LL_ENDOFBRANCH);
 				// decrement the resulting value to make it actually the last VALID ordering
@@ -94,7 +95,7 @@ class LanguageLessonPageMover {
 				}
 			}
 
-			$pages = get_records_select('languagelesson_pages', "ordering >= $firstPageOrdering and ordering <= $lastValidOrdering",
+			$pages = get_records_select('languagelesson_pages', "lessonid=$this->lessonid and ordering >= $firstPageOrdering and ordering <= $lastValidOrdering",
 										'ordering');
 		}
 
@@ -108,10 +109,10 @@ class LanguageLessonPageMover {
 					echo "<tr><td><b>$title</b></td></tr>\n";
 
 					if ($movepage->qtype != LL_ENDOFBRANCH
-							|| $page->ordering < $lastValidOrdering-1
+							|| $page->ordering < $lastValidOrdering
 							|| $this->isLastBranchEnd($movepage)) {
 						echo "<tr><td><a href=\"lesson.php?id=$this->cmid&amp;sesskey=".$USER->sesskey."&amp;action=move"
-								."&amp;pageid=$movepage->id&amp;after={$pageid}\"><small>"
+								."&amp;mode=move&amp;pageid=$movepage->id&amp;after={$pageid}\"><small>"
 								.get_string("movepagehere", "languagelesson")."</small></a></td></tr>\n";
 					}
 				}
@@ -137,7 +138,11 @@ class LanguageLessonPageMover {
 
 		// remove the page to be moved
 		$ringprevpageid = $this->getFrom('pages', 'prevpageid', 'id', $movepage->id, 'ID of previous page not found');
-		$ringnextpageid = $this->getFrom('pages', 'nextpageid', 'id', $movepage->id, 'ID of next page not found');
+		if ($movepage->qtype == LL_ENDOFBRANCH) {
+			$ringnextpageid = $this->getFrom('pages', 'id', 'prevpageid', $movepage->id, 'ID of page after EOB not found');
+		} else {
+			$ringnextpageid = $this->getFrom('pages', 'nextpageid', 'id', $movepage->id, 'ID of next page not found');
+		}
 		// DO NOT change the nextpageid of the preceding page if it is an EOB record
 		if (get_field('languagelesson_pages', 'qtype', 'id', $ringprevpageid) != LL_ENDOFBRANCH) {
 			$this->setTo('pages', 'nextpageid', $ringnextpageid, 'id', $ringprevpageid, 'could not excise page to move');
@@ -207,8 +212,9 @@ class LanguageLessonPageMover {
 		if ($movepage->qtype != LL_ENDOFBRANCH) {
 			$this->repairBranchPtrs($movepage, $oldnextpageid, $newnextpageid);
 		} else if (! $this->isLastBranchEnd($movepage)) {
-			$thisBrOrdering = get_field('languagelesson_branches', 'ordering', 'id', $movepage->branchid);
-			$nextbranch = get_field('languagelesson_branches', 'id', 'ordering', $thisBrOrdering+1);
+			$thisBranch = get_record('languagelesson_branches', 'id', $movepage->branchid);
+			$nextbranch = get_field('languagelesson_branches', 'id', 'ordering', $thisBranch->ordering+1, 'parentid',
+					$thisBranch->parentid);
 			$this->setTo('branches', 'firstpage', $newnextpageid, 'id', $nextbranch, 'could not update first page pointer of next
 					branch');
 		}

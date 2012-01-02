@@ -12,14 +12,14 @@ class LanguageLessonMenuBlock {
 
 	
 	// these vars are instance-dependent, so set them in the constructor
-	private $lessonid;
-	private $curpageid;
-	private $indentpixels;
+	private $lessonid = 0;
+	private $curpageid = 0;
+	private $indentpixels = 0;
 
 	// these base texts are instance-independent, but require variables, so set them in the constructor as well
-	private $selected;
-	private $notselected;
-	private $indent_style;
+	private $selected = '';
+	private $notselected = '';
+	private $indent_style = '';
 
 
 	function __construct($cmid, $lessonid, $curpageid, $indentpixels) {

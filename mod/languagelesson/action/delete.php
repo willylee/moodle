@@ -33,7 +33,7 @@
 class LanguageLessonPageDeleter {
 
 	// declare a lesson object for this class, just to have a placeholder
-	public $lesson;
+	public $lesson = null;
 
 
 	/*
