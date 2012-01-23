@@ -222,6 +222,7 @@ $string['sanitycheckfailed'] = 'Sanity check failed: This attempt has been delet
 $string['savechanges'] = 'Save Changes';
 $string['savechangesandeol'] = 'Save all changes and go to the end of the lesson.';
 $string['savepage'] = 'Save page';
+$string['savebranchtable'] = 'Save branch table';
 $string['score'] = 'Score';
 $string['scores'] = 'Scores';
 $string['secondpluswrong'] = 'Not quite.  Would you like to try again?';
@@ -451,6 +452,7 @@ $string['emailssent'] = 'Notification emails sent';
 $string['gradessaved'] = 'Custom grades assigned';
 
 $string['add4moreanswerfields'] = 'Add 4 more answer fields';
+$string['add4morebranches'] = 'Add 4 more branches';
 
 $string['defaultpoints'] = 'Default points per question';
 

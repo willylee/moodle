@@ -92,6 +92,12 @@ if (!defined("LL_NEXTPAGE")) {
     define("LL_NEXTPAGE", -1);
 }
 /**
+ * Stay on same page
+ */
+if (!defined("LL_THISPAGE")) {
+	define("LL_THISPAGE", 0);
+}
+/**
  * End of Lesson
  */
 if (!defined("LL_EOL")) {
@@ -2643,10 +2649,6 @@ function languagelesson_get_last_branch_table_seen($lesson, $user) {
 	          from {$CFG->prefix}languagelesson_seenbranches
 			  where lessonid=$lesson
 			    and userid=$user
-				and retry=(select MAX(retry)
-				           from {$CFG->prefix}languagelesson_seenbranches
-						   where lessonid=$lesson
-						     and userid=$user)
 			  order by timeseen DESC";
 	
 	$results = get_records_sql($query);

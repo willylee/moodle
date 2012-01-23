@@ -39,9 +39,6 @@
 	/// check if reviewing
 	$reviewing = optional_param('reviewing', 0, PARAM_INT);
 
-	/// check if redisplaying a just-submitted page
-	$submitted = optional_param('submitted', 0, PARAM_INT);
-
 	/// fetch feedback variables, if they exist
 	$showfeedback = optional_param('showfeedback', 0, PARAM_INT);
 	$aid = optional_param('aid', 0, PARAM_INT);
@@ -822,12 +819,11 @@
 	//////////////////////////////////////////////////////
 		
 		
-	/// if there is an old attempt for this question by this user, pull it so we can pre-select
-	/// their old answer for them, and flag that we need to do so
+		// if there is an old attempt for this question by this user, pull it so we can pre-select
+		// their old answer for them, and flag that we need to do so
 		$showOldAttempt = false;
 		if (($lesson->showoldanswer || $nomoreattempts)
-			&& $oldAttempt = languagelesson_get_most_recent_attempt_on($page->id, $USER->id)) {
-			
+				&& $oldAttempt = languagelesson_get_most_recent_attempt_on($page->id, $USER->id)) {
 			$showOldAttempt = true;
 		}
 		
@@ -854,8 +850,8 @@
 
 		}
 	
-	/// if we are showing old attempts and displaying correct/incorrect info in the left menu, mark the image to show the user next to
-	//their previous answer
+		// if we are showing old attempts and displaying correct/incorrect info in the left menu, mark the image to show the user
+		// next to their previous answer
 		$img = '';
 		if ($showOldAttempt && $lesson->contextcolors && isset($oldAttempt)) {
 			$img = '<img src="'.$CFG->wwwroot.
@@ -1229,13 +1225,11 @@
             							suggest viewing this page on a Mac.</p>";
             		}
             		
-            		$hassubmitted = false; //default behavior: it's a new try on a new question
-				
 					if ($attempt = languagelesson_get_most_recent_attempt_on($page->id, $USER->id)) {
 						if (!$manattempt = get_record('languagelesson_manattempts', 'id', $attempt->manattemptid)) {
 							error('Failed to retrieve corresponding manual attempt record for this attempt.');
 						}
-            			$hassubmitted = true; //there's a stored submission, so enable continuing
+            			$showOldAttempt = true; //there's a stored submission, so enable continuing
             			
 						// print out the submission and any feedback that has been recorded for it
 						languagelesson_print_submission_feedback_area($manattempt, $page->qtype);
@@ -1398,17 +1392,21 @@
 					echo '</td>';
 				}
 				
-				// if showing feedback or attempts are locked or it's a submitted revlet page, print the continue button
-				//if ($showfeedback || $nomoreattempts || $reviewing
-				//		|| (($page->qtype == LL_AUDIO || $page->qtype == LL_VIDEO) && $hassubmitted)) {
-				if ($submitted ||$showfeedback || $nomoreattempts || $reviewing) {
+				// if there is an old attempt being displayed, print the continue button
+				if ($showOldAttempt || $nomoreattempts || $reviewing) {
 					echo '<td>';
 					echo '<form id="continueform" action="view.php" method="get">';
 					echo '<input type="hidden" name="id" value="'.$cm->id.'" />';
 
+					echo '<input type="hidden" name="pageid" value="';
 					// if continue.php output a nextpageid, print it here
-					if ($saved_nextpageid) {
-						echo '<input type="hidden" name="pageid" value="'.$saved_nextpageid.'" />';
+					if ($saved_nextpageid) { echo $saved_nextpageid; }
+					// otherwise, if the nextpageid is a page, point to it
+					else if ($page->nextpageid) { echo $page->nextpageid; }
+					// otherwise, this page is the end of the lesson, so if the lesson is complete, just let continuing go back to
+					// the old grade landing page; if it's not complete, direct continue to an unanswered page
+					else if (! languagelesson_is_lesson_complete($lesson->id, $USER->id)) {
+						echo languagelesson_find_first_unanswered_pageid($lesson->id, $USER->id);
 					}
 
 					// if they're reviewing, keep them reviewing

@@ -46,8 +46,23 @@ class LanguageLessonPageDeleter {
 
 		// set the prevpageid and nextpageid values to use in patching the hole in the linked list
 		$prevpageid = $delPage->prevpageid;
-		$nextpageid = (($delPage->qtype == LL_ENDOFBRANCH) ? get_field('languagelesson_pages', 'id', 'prevpageid', $delPage->id)
-															: $delPage->nextpageid);
+		// set nextpageid based on the type of the page
+		switch ($delPage->qtype) {
+			// if it's an end of branch, the nextpageid pointer will vary, so pull the id of the page whose previous pointer is this
+			// one
+			case LL_ENDOFBRANCH:
+				$nextpageid = get_field('languagelesson_pages', 'id', 'prevpageid', $delPage->id);
+				break;
+			// if it's a branch table, we've just changed the nextpageid value, so pull it again
+			case LL_BRANCHTABLE:
+				$nextpageid = get_field('languagelesson_pages', 'nextpageid', 'id', $delPage->id);
+				break;
+			// otherwise, just take the one we got with the page
+			default;
+				$nextpageid = $delPage->nextpageid;
+				break;
+		}
+
 
 		// now delete the page itself
 		$this->deleteFrom('pages', 'id', $delPage->id, 'could not delete page record');
@@ -98,7 +113,7 @@ class LanguageLessonPageDeleter {
 			
 			// Need to delete ENDOFBRANCH records, seen branches, and branches
 			case LL_BRANCHTABLE:
-				$branches = get_records('languagelesson_branches', 'parentid', $delPage->id);
+				$branches = get_records('languagelesson_branches', 'parentid', $delPage->id, 'ordering');
 				foreach ($branches as $branch) {
 					// delete the branch's ENDOFBRANCH page
 					$eob = get_record('languagelesson_pages', 'qtype', LL_ENDOFBRANCH, 'branchid', $branch->id);

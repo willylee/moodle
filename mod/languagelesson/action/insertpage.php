@@ -271,14 +271,14 @@
 		// determine what the nextpageid should be for the case of inserting an EOB at the end of the current level (lesson or branch)
 		// - if the parent branch table has no branch ID, this branching structure is not inside another branching structure, so the
 		// EOB is being inserted at lesson level, therefore the nextpageid will be 0 (marking it as the end of the lesson)
-		// - if the parent branch table does have a branch ID, the EOB is being inserted at branch level, so the nextpageid should be
-		// the nextpageid of the EOB record ending the containing branch
+		// - if the parent branch table does have a branch ID, the EOB is being inserted at branch level, so its nextpageid should be
+		// the id of the EOB record ending the containing branch
 		if (!$newpage->branchid) {
 			$endpageid = 0;
 		} else {
 			$containingBranchPages = get_records('languagelesson_pages', 'branchid', $newpage->branchid, 'ordering');
 			$lastContainingBranchPage = end($containingBranchPages);
-			$endpageid = $lastContainingBranchPage->nextpageid;
+			$endpageid = $lastContainingBranchPage->id;
 		}
 
 
@@ -339,8 +339,12 @@
 			// first page's prevpageid value to the newly-inserted EOB record
 			if ($i+1 < count($branches) && $branches[$i+1]->firstpage) {
 				set_field('languagelesson_pages', 'prevpageid', $neweobid, 'id', $branches[$i+1]->firstpage);
+			// - if this is the last EOB record; if it's not getting inserted inside another branch level, there will be no page after
+			// this, so don't bother setting anything, but if this is inside another branch structure, then set that containing
+			// branch's EOB to be following this last record
+			} else if ($i+1 == count($branches) && $endpageid) {
+				set_field('languagelesson_pages', 'prevpageid', $neweobid, 'id', $endpageid);
 			}
-			// - otherwise, this EOB record was inserted at the end, so there should be no prevpageid pointing to this record
 
 		}
 

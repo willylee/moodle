@@ -52,7 +52,7 @@ class LanguageLessonMenuBlock {
 
 
 	private function printPage($page, $content, $curdepth) {
-		global $USER;
+		global $CFG, $USER;
 
 		switch ($page->qtype) {
 
@@ -68,10 +68,10 @@ class LanguageLessonMenuBlock {
 				break;
 
 			default:
+				// reset the optional second image string
+				$img2 = '';
 				if ($state = languagelesson_get_autograde_state($this->lessonid, $page->id, $USER->id)) {
 					if (get_field('languagelesson', 'contextcolors', 'id', $this->lessonid)) {
-						// reset the optional second image string
-						$img2 = '';
 						if ($state == 'correct') {
 							$class = 'leftmenu_autograde_correct';
 							$img = "<img src=\"{$CFG->wwwroot}".get_string('iconsrccorrect', 'languagelesson')."\"

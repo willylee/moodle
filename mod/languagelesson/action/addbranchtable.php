@@ -41,8 +41,9 @@
 	var basePages = array();
 	basePages[0] = '--';
 	<?php
-	foreach ($pages as $page) {
-		echo "basePages[$page->id] = '$page->title';\n";
+	// print out the valid pages only if they exist
+	while ($pages && list($pageid,$page) = each($pages)) {
+		echo "basePages[$pageid] = '$page->title';\n";
 	}
 	?>
 
@@ -58,7 +59,6 @@
     $jump[0] = '--';
 	// now, if there are pages after where this BT is getting created, populate the list with them
 	if (!$firstpage && $pages) {
-		//$pages = get_records('languagelesson_pages', 'lessonid', $lesson->id, 'ordering');
 		foreach ($pages as $apageid => $apage) {
 			$jump[$apageid] = $apage->title;
 		}
@@ -130,11 +130,11 @@
 			actionInput.value = action;
 		}
 	</script>
-	<input type="submit" onclick="setAction('addbranchtable');" value="<?php print_string('add4moreanswerfields', 'languagelesson');
+	<input type="submit" onclick="setAction('addbranchtable');" value="<?php print_string('add4morebranches', 'languagelesson');
 		?>" />
 	<?php if ($firstpage) { ?><input type="hidden" name="firstpage" value="1" /><?php } ?>
 	<br /><br />
-    <input type="submit" value="<?php  print_string("addabranchtable", "lesson") ?>" />
+    <input type="submit" value="<?php  print_string("savebranchtable", "languagelesson") ?>" />
     <input type="submit" name="cancel" value="<?php  print_string("cancel") ?>" />
     </fieldset>
     </form>

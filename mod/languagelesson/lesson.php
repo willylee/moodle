@@ -42,7 +42,6 @@
         case 'confirmdelete':
         case 'editpage':
         case 'move':
-        case 'moveit':
             languagelesson_print_header($cm, $course, $lesson);
         case 'addcluster':
         case 'addendofbranch':
