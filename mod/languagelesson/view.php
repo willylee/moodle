@@ -36,10 +36,13 @@
     
     $context = get_context_instance(CONTEXT_MODULE, $cm->id);
 
-	/// check if reviewing
+	// check if reviewing
 	$reviewing = optional_param('reviewing', 0, PARAM_INT);
 
-	/// fetch feedback variables, if they exist
+	// check if they submitted an answer
+	$noanswer = optional_param('noanswer', 0, PARAM_INT);
+
+	// fetch feedback variables, if they exist
 	$showfeedback = optional_param('showfeedback', 0, PARAM_INT);
 	$aid = optional_param('aid', 0, PARAM_INT);
 	$atext = optional_param('atext', '', PARAM_RAW);
@@ -695,6 +698,12 @@
 			$nomoreattempts = false;
 			$lastattemptwarning = false;
 		}
+
+		
+	/// if they didn't submit an answer, warn them they need to
+		if ($noanswer) {
+			languagelesson_set_message(get_string('noanswer', 'languagelesson'));
+		}
 		
 		
 	// </handle lesson messages> /////////////////////////
@@ -1189,6 +1198,8 @@
 						languagelesson_print_submission_feedback_area($manattempt, $page->qtype, $showOldAttempt);
 						
 						// if the lesson is set to show the old attempt, plug their old submission into the WYSIWYG
+						error_log("showOldAttempt is $showOldAttempt");
+						error_log("manattempt->essay is $manattempt->essay");
 						if ($showOldAttempt) {
 							$value = $manattempt->essay;
 						}
@@ -1583,7 +1594,7 @@
 				/// the grade they have now is NOT necessarily their final grade
 				/// ignore this if the lesson was set to autograde manual-type questions
                 if ($gradeinfo->nmanual && !$lesson->autograde) {
-				    $a->tempmaxgrade = $gradeinfo->total - $gradeinfo->manualpoints;
+				    $a->tempmaxgrade = $a->total - $gradeinfo->manualpoints;
 					$a->nmanquestions = $gradeinfo->nmanual;
 					echo "<div style=\"text-align:center;\">".get_string("displayscorewithmanuals",
 						"languagelesson", $a)."</div>";

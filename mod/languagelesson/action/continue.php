@@ -18,35 +18,227 @@
         error("Continue: Page record not found");
     }
 
-	$continuer = new LanguageLessonContinuer($context, $lesson);
-	$continuer->continue();
+	$continuer = new LanguageLessonContinuer($context, $lesson, $page);
+	$continuer->processSubmission();
 
 
 
 class LanguageLessonContinuer {
 
     // set up some defaults
-    $answerid        = 0;
-    $noanswer        = false;
-    $correctanswer   = false;
-    $isessayquestion = false;   // use this to turn off review button on essay questions
-    $jumpValue       = 0;       // stay on the page
-    $studentanswer   = '';      // use this to store student's answer(s) in order to display it on feedback page
+	public $lesson = null;
+	public $page = null;
+	public $userid = 0;
 
-	$isStudent = false;
-	$lesson = null;
-	$userid = 0;
+	private $isStudent = false;
 
-	$skipRecordChanging = false;  // Flag for if to skip changing any records in the DB
-	$showFeedback  = false;       // Flag to mark if there is feedback to show for this submission
+	private $skipRecordChanging = false;  // Flag for if to skip changing any records in the DB
+	private $showFeedback  = false;       // Flag to mark if there is feedback to show for this submission
     
     
-	function __construct($context, $lesson) {
+	function __construct($context, $lesson, $page) {
 		global $USER;
-		$this->isStudent = has_capability('mod/languagelesson:manage', $context);
 		$this->lesson = $lesson;
+		// store the lessonid for easy access
+		$this->lessonid = $lesson->id;
+		$this->page = $page;
+		// store the pageid for easy access
+		$this->pageid = $page->id;
 		$this->userid = $USER->id;
+		$this->isStudent = ! has_capability('mod/languagelesson:manage', $context);
 	}
+
+
+
+	public function processSubmission() {
+
+		// update the student's recorded time for this LL
+		$this->updateTimer();
+
+		// check if the student has maxed out their attempts on this question
+		if ($this->lesson->maxattempts > 0) { // if maxattempts is 0, attempts are unlimited
+			$nattempts = count_records("languagelesson_attempts", "pageid", $this->pageid, "userid", $this->userid);
+			if ($nattempts >= $this->lesson->maxattempts) {
+				$this->skipRecordChanging = true;
+			}
+		}
+
+		// process the submitted answer(s)
+		list($jumpValue, $answerData) = $this->processAnswers();
+
+		// if they didn't submit an answer at all, reload the page and give them a warning 
+		if (is_null($answerData)) {
+			error_log("no answers submitted");
+			$feedback  = get_string('noanswer', 'languagelesson');
+			$this->redirect(null, null, true);
+		}
+
+		// if this isn't a student, there's no reason to touch the tables
+		if ($this->isStudent) {
+			// If we don't need to change attempts records, don't do so
+			if (!$this->skipRecordChanging) {
+				$attemptid = $this->recordAttempt($answerData);
+			}
+			// and update the languagelesson's grade
+			// NOTE that this happens no matter the question type
+			if ($this->lesson->type != LL_TYPE_PRACTICE) {
+				// get the lesson's graded information
+				$gradeinfo = languagelesson_grade($this->lesson);
+				// save the grade
+				languagelesson_save_grade($this->lessonid, $this->userid, $gradeinfo->grade);
+				// finally, update the records in the gradebook
+				languagelesson_update_grades($this->lesson, $this->userid);
+			}
+		}
+
+		// Determine if we should display feedback
+		if (($answerData->response || $this->lesson->defaultfeedback)
+				&& $this->page->qtype != LL_BRANCHTABLE) {
+			$this->showFeedback = true;
+			// if so, we should also feed in the next page (irrespective of the correctness of the attempt) for the "continue" button
+			$jumpValue = LL_NEXTPAGE;
+		}
+
+		// use the jump value and any override conditions to determine where the user should go next
+		$newpageid = $this->findNextPage($jumpValue);
+
+		// if no attempt was recorded, make attemptid empty
+		if (! isset($attemptid)) { $attemptid = null; }
+
+		$this->redirect($newpageid, $attemptid);
+	}
+
+
+	private function findNextPage($jumpValue) {
+		$newpageid = $this->processJumpValue($jumpValue);
+
+		// $newpageid override checks
+
+		// since lesson questions can be answered in arbitrary order, check if lesson is complete after each
+		// submission--if so, and if the lesson hasn't been completed before (marked by the 'completed' field
+		// in languagelesson_grades), jump to the EOL page; if it has, and we are marked to go to the EOL page,
+		// redirect to view.php to handle the "Old Grade" page instead
+		if (languagelesson_is_lesson_complete($this->lessonid, $this->userid)) {
+			if (!get_field('languagelesson_grades', 'completed', 'lessonid', $this->lessonid, 'userid', $this->userid)) {
+				$newpageid = LL_EOL;
+			} else if ($newpageid == LL_EOL) {
+				/// mark that we have completed it before, so let view just direct us to the "Old Grade"
+				/// page by not giving it a pageid
+				$newpageid = null;
+			}
+		}
+	
+		// if it's NOT complete, BUT the next page is found to be the EOL, then user jumped ahead in the lesson and just answered the
+		// last
+		// question, so boot them back to the first one they haven't answered
+		elseif ($newpageid == LL_EOL) {
+			$newpageid = languagelesson_find_first_unanswered_pageid($this->lessonid, $this->userid);
+		}
+
+		return $newpageid;
+	}
+
+
+
+	private function processAnswers() {
+		// init this here, as not all qtypes require it, but it is checked later
+		$answerData = new stdClass;
+
+		// init the bool checker of if the field will come in the form of an array or not (for checking accurately if it is empty)
+		$isarray = false;
+		switch ($this->page->qtype) {
+			case LL_ESSAY:
+			case LL_SHORTANSWER:
+			case LL_CLOZE:
+			case LL_TRUEFALSE:
+			case LL_MULTICHOICE:
+			//case LL_MATCHING:
+			//case LL_NUMERICAL:
+				// init stuff
+
+				switch ($this->page->qtype) {
+					case LL_ESSAY:
+						$ext = 'Essay';
+						$field = 'answer';
+						break;
+					case LL_SHORTANSWER:
+						$ext = 'ShortAnswer';
+						$field = 'answer';
+						break;
+					case LL_CLOZE: 
+						$ext = 'Cloze'; 
+						$field = 'answer';
+						$isarray = true;
+						break;
+					case LL_TRUEFALSE:
+						$ext = 'TrueFalse'; 
+						$field = 'answerid';
+						break;
+					case LL_MULTICHOICE:
+						$ext = 'Multichoice';
+						$field = ($this->page->qoption ? 'answer' : 'answerid');
+						if ($this->page->qoption) { $isarray = true; }
+						break;
+					/*case LL_MATCHING:
+						$ext = 'Matching';
+						$field = 'response';
+						break;*/
+					/*case LL_NUMERICAL:
+						$ext = 'Numerical';
+						$field = 'answer';
+						break;*/
+					default: break;
+				}
+
+				$funcname = "handle$ext";
+
+				// if the answers are coming as an array, check if there are any answers actually contained in the array
+				if ($isarray) {
+					$foundData = false;
+					foreach ($_POST[$field] as $key => $value) {
+						if (! empty($value)) {
+							$foundData = true;
+							break;
+						}
+					}
+				}
+
+				// if answers were submitted, then process them
+				if (isset($_POST[$field]) && 
+						(!$isarray && ! empty($_POST[$field]))
+						|| ($isarray && $foundData)) {
+					list($jumpValue, $answerData) = $this->$funcname();
+				// otherwise, return default empty values
+				} else {
+					$jumpValue = LL_THISPAGE;
+					$answerData = null;
+				}
+
+				break;
+
+			case LL_BRANCHTABLE:
+				$jumpValue = $this->handleBranchTable();
+				// no need to record anything in lesson_attempts
+				$this->skipRecordChanging = true;
+				break;
+			case LL_AUDIO:
+			case LL_VIDEO:
+				// all attempt record handling is done in upload function, so don't need to do anything here
+				$jumpValue = get_field('languagelesson_answers', 'jumpto', 'pageid', $this->pageid);
+				$correctanswer = true;
+				$this->skipRecordChanging = true;
+				break;
+
+			default:
+				break;
+		}
+
+		return array($jumpValue, $answerData);
+
+	}
+
+
+
 
 
 	/**
@@ -55,7 +247,8 @@ class LanguageLessonContinuer {
 	private function updateTimer() {
 		$timer = new stdClass;
 		if ($this->isStudent) {
-			if (!$timer = get_records_select('languagelesson_timer', "lessonid = $this->lesson->id AND userid = $this->userid",
+			// PHP will throw a fatal error if the nested property is accessed in the string below, so pull this here
+			if (!$timer = get_records_select('languagelesson_timer', "lessonid = $this->lessonid AND userid = $this->userid",
 						'starttime')) {
 				error('Error: could not find records');
 			} else {
@@ -84,17 +277,189 @@ class LanguageLessonContinuer {
 	}
 
 
-	private function handleEssay() {
-		$isessayquestion = true;
-		if (!$useranswer = $_POST['answer']) {
-			$noanswer = true;
-			break;
+
+
+
+	private function recordAttempt($answerData) {
+		// pull the retry value for this attempt, and handle deflagging former current attempt 
+		if ($oldAttempt = languagelesson_get_most_recent_attempt_on($this->pageid, $this->userid)) {
+			$nretakes = $oldAttempt->retry + 1;
+
+			// update the old attempt to no longer be marked as the current one
+			$uattempt = new stdClass;
+			$uattempt->id = $oldAttempt->id;
+			$uattempt->iscurrent = 0;
+
+			if (! update_record('languagelesson_attempts', $uattempt)) {
+				error('Failed to deflag former current attempt!');
+			}
+		} else { $nretakes = 0; }
+		
+		// record student's attempt
+		$attempt = new stdClass;
+		$attempt->lessonid = $this->lessonid;
+		$attempt->pageid = $this->pageid;
+		$attempt->userid = $this->userid;
+		$attempt->answerid = $answerData->answerid;
+		$attempt->retry = $nretakes;
+		// flag this as the current attempt
+		$attempt->iscurrent = 1;
+		$attempt->correct = $answerData->correctanswer;
+		$attempt->score = $answerData->score;
+		if(isset($answerData->userresponse)) {
+			$attempt->useranswer = $answerData->userresponse;
+		}
+		$attempt->timeseen = time();
+
+		// every try is recorded as a new one (by increasing retry value), so just insert this one
+		if (!$newattemptid = insert_record("languagelesson_attempts", $attempt)) {
+			error("Continue: attempt not inserted");
 		}
 		
+		// if it's an essay question, handle the manual attempt record
+		// (NOTE that audio/video manual attempt records are handled in file uploading functions)
+		if ($this->page->qtype == LL_ESSAY) {
+			// pull the mostly-built manualattempt data record from the answerData
+			$manualattempt = $answerData->manattempt;
+			// save the manual attempt record
+			$manualattempt->timeseen = time();
+			if (!$manattemptid = insert_record('languagelesson_manattempts', $manualattempt)) {
+				error("Continue: manual attempt not inserted.");
+			}
+			
+			// and log its ID in the attempt record
+			$uattempt = get_record('languagelesson_attempts', 'id', $newattemptid);
+			$uattempt->manattemptid = $manattemptid;
+			if (! update_record('languagelesson_attempts', $uattempt)) {
+				error("Continue: failed to note manual attempt id in attempt record.");
+			}
+		}
+
+		// return the ID of the attempt record changed
+		if (isset($newattemptid)) { return $newattemptid; }
+		else { return $uattempt->id; }
+	}
+
+
+
+
+
+
+
+	private function processJumpValue($jumpValue) {
+		// init newpageid to empty value
+		$newpageid = 0;
+
+		// if this is a test lesson and is a normal page, they should always be moved to the next page, regardless  of whether
+		// they got it right or not
+		if ($this->lesson->type == LL_TYPE_TEST) { return $this->page->nextpageid; }
+
+		switch ($jumpValue) {
+
+			case LL_NEXTPAGE:
+				$newpageid = ($this->page->nextpageid ? $this->page->nextpageid : LL_EOL);
+				break;
+			case LL_THISPAGE:
+				$newpageid = $this->pageid;
+				break;
+			case LL_PREVIOUSPAGE:
+				$newpageid = $this->page->prevpageid;
+				break;
+			case LL_RANDOMPAGE:
+				$newpageid = languagelesson_random_question_jump($this->lessonid, $this->pageid);
+				break;
+			case LL_CLUSTERJUMP:
+				if (! $this->isStudent) {
+					if ($this->page->nextpageid == 0) {  // if teacher, go to next page
+						$newpageid = LL_EOL;
+					} else {
+						$newpageid = $this->page->nextpageid;
+					}            
+				} else {
+					$newpageid = languagelesson_cluster_jump($this->lessonid, $this->userid, $this->pageid);
+				}
+				break;
+			case LL_UNSEENBRANCHPAGE:
+				if (! $this->isStudent) {
+					if ($this->page->nextpageid == 0) {
+						$newpageid = LL_EOL;
+					} else {
+						$newpageid = $this->page->nextpageid;
+					}
+				} else {
+					$newpageid = languagelesson_unseen_question_jump($this->lessonid, $this->userid, $this->pageid);
+				}            
+				break;
+			// otherwise, it's an actual specific pageid, so just pass it in
+			default:
+				$newpageid = $jumpValue;
+				break;
+		}
+
+		return $newpageid;
+	}
+
+
+
+
+
+
+
+
+
+
+
+	private function redirect($newpageid, $attemptid, $noanswer=false) {
+		global $CFG, $cm;
+
+		// if the user did not submit an answer, just refresh the page and tell them so
+		if ($noanswer) {
+			redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id&amp;pageid=$this->pageid&amp;noanswer=1");
+		}
+
+		$nopageid = is_null($newpageid);
+
+		// if we are to show the viewer feedback on their submission, set up the required variables to display feedback output
+		if ($this->showFeedback) {
+			if ($this->isStudent) {
+				$aid = $attemptid;
+			} else {
+				$aid = $answerid;
+				if (!$aid) {
+					$atext = $userresponse;
+				}
+			}
+		
+		// finally, redirect to display feedback or not
+			redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id&amp;pageid=$this->pageid"
+					 ."&amp;showfeedback=1&amp;aid=$aid" . ((isset($atext)?"&amp;atext=$atext":''))
+					 .(($nopageid) ? '' : "&amp;nextpageid=$newpageid"));
+		} else if ($this->page->qtype == LL_AUDIO || $this->page->qtype == LL_VIDEO) {
+			// if it's an audio or video, force showing same page again to confirm successful submission
+			redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id&amp;pageid=$this->pageid"
+					 .(($nopageid) ? '' : "&amp;nextpageid=$newpageid&amp;submitted=1"));
+		} else {
+			// Don't display feedback
+			redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id"
+					 . (($nopageid) ? '' : "&amp;pageid=$newpageid")
+					 . (($newpageid == $this->pageid) ? "&amp;submitted=1" : ''));
+		}
+
+	}
+
+
+
+
+
+
+
+	private function handleEssay() {
+		$useranswer = $_POST['answer'];
+		
 		$manualattempt = new stdClass();
-		$manualattempt->lessonid = $this->lesson->id;
+		$manualattempt->lessonid = $this->lessonid;
 		$manualattempt->userid = $this->userid;
-		$manualattempt->pageid = $page->id;
+		$manualattempt->pageid = $this->pageid;
 		$manualattempt->type = LL_ESSAY;
 
 		$useranswer = clean_param($useranswer, PARAM_RAW);
@@ -102,7 +467,7 @@ class LanguageLessonContinuer {
 		
 		// if the student had previously submitted an attempt on this question, and it has since been graded,
 		// mark this new submission as a resubmit
-		if ($prevAttempt = languagelesson_get_most_recent_attempt_on($page->id, $this->userid)) {
+		if ($prevAttempt = languagelesson_get_most_recent_attempt_on($this->pageid, $this->userid)) {
 			if (! $oldManAttempt = get_record('languagelesson_manattempts', 'id', $prevAttempt->manattemptid)) {
 				error('Failed to fetch matching manual_attempt record for old attempt on this question!');
 			}
@@ -113,7 +478,7 @@ class LanguageLessonContinuer {
 			}
 		}
 	
-		if (!$answer = get_record("languagelesson_answers", "pageid", $page->id)) {
+		if (!$answer = get_record("languagelesson_answers", "pageid", $this->pageid)) {
 			error("Continue: No answer found");
 		}
 		$correctanswer = false;
@@ -135,21 +500,26 @@ class LanguageLessonContinuer {
 		else {
 			$score = 0;
 		}
+
+		$answerData = new stdClass;
+		$answerData->answerid = $answerid;
+		$answerData->correctanswer = $correctanswer;
+		$answerData->score = $score;
+		// save the manualattempt into the answerData
+		$answerData->manattempt = $manualattempt;
+		
+		return array($jumpValue, $answerData);
 	}
 
 
 
-	function handleShortAnswer() {
-		if (isset($_POST['answer'])) {
-			$useranswer = $_POST['answer'];
-		} else {
-			$noanswer = true;
-			break;
-		}            
+	private function handleShortAnswer() {
+		$useranswer = $_POST['answer'];
+
 		$correctanswer = false;
 		$useranswer = s(stripslashes(clean_param($useranswer, PARAM_RAW)));
 		$userresponse = addslashes($useranswer);
-		if (!$answers = get_records("languagelesson_answers", "pageid", $page->id)) {
+		if (!$answers = get_records("languagelesson_answers", "pageid", $this->pageid)) {
 			error("Continue: No answers found");
 		}
 		$i=0;
@@ -160,7 +530,7 @@ class LanguageLessonContinuer {
 			$markit          = false; 
 			$useregexp       = false;
 
-			if ($page->qoption) {
+			if ($this->page->qoption) {
 				$useregexp = true;
 			}
 			
@@ -235,7 +605,15 @@ class LanguageLessonContinuer {
 			$score = 0;
 			$jumpValue = LL_THISPAGE;
 		}
-		$studentanswer = $useranswer;
+
+		$answerData = new stdClass;
+		$answerData->answerid = (isset($answerid) ? $answerid : 0);
+		$answerData->correctanswer = $correctanswer;
+		$answerData->score = $score;
+		$answerData->userresponse = $useranswer;
+		if (isset($response)) { $answerData->response = $response; }
+		
+		return array($jumpValue, $answerData);
 	}
 
 
@@ -246,21 +624,16 @@ class LanguageLessonContinuer {
 
 	private function handleCloze() {
 		// pull the array of answers submitted by the user
-		if (isset($_POST['answer'])) {
-			$useranswers = $_POST['answer'];
-		} else {
-			$noanswer = true;
-			break;
-		}
+		$useranswers = $_POST['answer'];
 
 		// pull the array of correct answers, keyed to their question number
-		if (!$answers = get_records_select("languagelesson_answers", "pageid=$page->id and not isnull(answer)")) {
+		if (!$answers = get_records_select("languagelesson_answers", "pageid=$this->pageid and not isnull(answer)")) {
 			error("Continue: No answers found");
 		}
 		$keyedAnswers = languagelesson_key_cloze_answers($answers);
 
 		// pull the page responses as well, for use in determining $jumpValue
-		if (!$responses = get_records_select('languagelesson_answers', "pageid=$page->id
+		if (!$responses = get_records_select('languagelesson_answers', "pageid=$this->pageid
 																		and not isnull(response)
 																		and (isnull(answer)
 																			 or answer='')")) {
@@ -284,7 +657,7 @@ class LanguageLessonContinuer {
 			
 			$useranswer = $useranswers[$qnum];
 			// if the page is not set to be case-sensitive, force lower case on both strings
-			if (! $page->qoption) {
+			if (! $this->page->qoption) {
 				$useranswer = strtolower($useranswer);
 				$answer->answer = strtolower($answer->answer);
 			}
@@ -321,20 +694,26 @@ class LanguageLessonContinuer {
 		// determine the jumpValue and answerid
 		if ($correctanswer) {
 			$jumpValue = $correctresponse->jumpto;
-			$answerid = $correctresponse->id;
+			$responseid = $correctresponse->id;
 			if (! empty($correctresponse->response)) {
 				$response = $correctresponse->response;
 			}
 		} else {
 			$jumpValue = $wrongresponse->jumpto;
-			$answerid = $wrongresponse->id;
+			$responseid = $wrongresponse->id;
 			if (! empty($wrongresponse->response)) {
 				$response = $wrongresponse->response;
 			}
 		}
 
-		// and save their answers in serialized format for later retrieval
-		$userresponse = serialize($useranswers);
+		$answerData = new stdClass;
+		$answerData->answerid = $responseid;
+		$answerData->correctanswer = $correctanswer;
+		$answerData->score = $score;
+		$answerData->userresponse = serialize($useranswers);
+		if (isset($response)) { $answerData->response = $response; }
+		
+		return array($jumpValue, $answerData);
 	}
 
 
@@ -344,47 +723,40 @@ class LanguageLessonContinuer {
 
 
 	private function handleTrueFalse() {
-		if (empty($_POST['answerid'])) {
-			$noanswer = true;
-			break;
-		}
 		$answerid = required_param('answerid', PARAM_INT); 
 		if (!$answer = get_record("languagelesson_answers", "id", $answerid)) {
 			error("Continue: answer record not found");
 		} 
-		if (languagelesson_iscorrect($page->id, $answer->jumpto)) {
+		if (languagelesson_iscorrect($this->pageid, $answer->jumpto)) {
 			$correctanswer = true;
 		}
-		if ($answer->score > 0) {
-			$correctanswer = true;
-		} else {
-			$correctanswer = false;
-		}
-		$score = $answer->score;
+		$correctanswer = ($answer->score > 0);
+
+		$answerData = new stdClass;
+		$answerData->answerid = $answerid;
+		$answerData->score = $answer->score;
+		$answerData->correctanswer = $correctanswer;
+		if (! empty($answer->response)) { $answerData->response = $answer->response; }
+
 		$jumpValue = $answer->jumpto;
-		$response  = trim($answer->response);
-		$studentanswer = $answer->answer;
+
+		return array($jumpValue, $answerData);
 	}
 
 
 
 
 	private function handleMultichoice() {
-		if ($page->qoption) {
+		if ($this->page->qoption) {
 			// MULTIANSWER allowed, user's answer is an array
-			if (isset($_POST['answer'])) {
-				$useranswers = $_POST['answer'];
-				foreach ($useranswers as $key => $useranswer) {
-					$useranswers[$key] = clean_param($useranswer, PARAM_INT);
-				}
-			} else {
-				$noanswer = true;
-				break;
+			$useranswers = $_POST['answer'];
+			foreach ($useranswers as $key => $useranswer) {
+				$useranswers[$key] = clean_param($useranswer, PARAM_INT);
 			}
 			// get what the user answered
 			$userresponse = implode(",", $useranswers);
 			// get the answers in a set order, the id order
-			if (!$answers = get_records("languagelesson_answers", "pageid", $page->id)) {
+			if (!$answers = get_records("languagelesson_answers", "pageid", $this->pageid)) {
 				error("Continue: No answers found");
 			}
 			$ncorrect = 0;
@@ -394,14 +766,6 @@ class LanguageLessonContinuer {
 			$correctanswerid = 0;
 			$wronganswerid = 0;
 			$score = 0;
-			// store student's answers for displaying on feedback page
-			foreach ($answers as $answer) {
-				foreach ($useranswers as $key => $answerid) {
-					if ($answerid == $answer->id) {
-						$studentanswer .= '<br />'.$answer->answer;
-					}
-				}
-			}
 			// If score on answer is positive, it is correct                    
 			$ncorrect = 0;
 			$nhits = 0;
@@ -450,21 +814,18 @@ class LanguageLessonContinuer {
 				$jumpValue = $correctpageid;
 				$answerid  = $correctanswerid;
 			} else {
+				$correctanswer = false;
 				$response  = $wrongresponse;
 				$jumpValue = $wrongpageid;
 				$answerid  = $wronganswerid;
 			}
 		} else {
 			// only one answer allowed
-			if (empty($_POST['answerid'])) {
-				$noanswer = true;
-				break;
-			}
 			$answerid = required_param('answerid', PARAM_INT); 
 			if (!$answer = get_record("languagelesson_answers", "id", $answerid)) {
 				error("Continue: answer record not found");
 			}
-			if (languagelesson_iscorrect($page->id, $answer->jumpto)) {
+			if (languagelesson_iscorrect($this->pageid, $answer->jumpto)) {
 				$correctanswer = true;
 			}
 			if ($answer->score > 0) {
@@ -475,25 +836,32 @@ class LanguageLessonContinuer {
 			$score = $answer->score;
 			$jumpValue = $answer->jumpto;
 			$response  = trim($answer->response);
-			$studentanswer = $answer->answer;
 		}
+
+		$answerData = new stdClass;
+		$answerData->answerid = $answerid;
+		$answerData->correctanswer = $correctanswer;
+		$answerData->score = $score;
+		if (isset($userresponse)) { $answerData->userresponse = $userresponse; }
+		if (isset($response)) { $answerData->response = $response; }
+		
+		return array($jumpValue, $answerData);
 	}
 
 
 
 
 	private function handleMatching() {
-		if (isset($_POST['response']) && is_array($_POST['response'])) { // only arrays should be submitted
+		if (is_array($_POST['response'])) { // only arrays should be submitted
 			$response = array();
 			foreach ($_POST['response'] as $key => $value) {
 				$response[$key] = stripslashes($value);
 			}
 		} else {
-			$noanswer = true;
-			break;
+			return array(LL_THISPAGE, null);
 		}
 
-		if (!$answers = get_records("languagelesson_answers", "pageid", $page->id)) {
+		if (!$answers = get_records("languagelesson_answers", "pageid", $this->pageid)) {
 			error("Continue: No answers found");
 		}
 
@@ -529,7 +897,6 @@ class LanguageLessonContinuer {
 					$score += $answer->score;
 				}
 			}
-			$studentanswer .= '<br />'.$answers[$key]->answer.' = '.$value;
 		}
 		$userresponse = implode(",", $userresponse);
 
@@ -562,6 +929,16 @@ class LanguageLessonContinuer {
 			$jumpValue = $wrongpageid;
 			$answerid = $wronganswerid;
 		}
+
+
+		$answerData = new stdClass;
+		$answerData->answerid = $answerid;
+		$answerData->correctanswer = $correctanswer;
+		$answerData->score = $score;
+		$answerData->userresponse = $userresponse;
+		if (isset($response)) { $answerData->response = $response; }
+		
+		return array($jumpValue, $answerData);
 	}
 
 
@@ -569,14 +946,9 @@ class LanguageLessonContinuer {
 
 
 	private function handleNumerical() {
-		if (isset($_POST['answer'])) {
-			$useranswer = (float) optional_param('answer');
-		} else {
-			$noanswer = true;
-			break;
-		}
-		$studentanswer = $userresponse = $useranswer;
-		if (!$answers = get_records("languagelesson_answers", "pageid", $page->id)) {
+		$useranswer = (float) optional_param('answer');
+
+		if (!$answers = get_records("languagelesson_answers", "pageid", $this->pageid)) {
 			error("Continue: No answers found");
 		}
 		foreach ($answers as $answer) {
@@ -593,7 +965,7 @@ class LanguageLessonContinuer {
 			if (($useranswer >= $minimum) and ($useranswer <= $maximum)) {
 				$jumpValue = $answer->jumpto;
 				$response = trim($answer->response);
-				if (languagelesson_iscorrect($page->id, $jumpValue)) {
+				if (languagelesson_iscorrect($this->pageid, $jumpValue)) {
 					$correctanswer = true;
 				}
 				if ($answer->score > 0) {
@@ -602,16 +974,31 @@ class LanguageLessonContinuer {
 					$correctanswer = false;
 				}
 				$answerid = $answer->id;
+				$score = $answer->score;
 				break;
+			} else {
+				$correctanswer = false;
+				$score = 0;
 			}
 		}
+
+		$answerData = new stdClass;
+		$answerData->answerid = $answerid;
+		$answerData->correctanswer = $correctanswer;
+		$answerData->score = $score;
+		$answerData->userresponse = $useranswer;
+		if (isset($response)) { $answerData->response = $response; }
+		
+		return array($jumpValue, $answerData);
 	}
 
 
 
 
+	/**
+	 * Handle the _seenbranches record
+	 */
 	private function handleBranchTable() {
-		$noanswer = false;
 		$jumpValue = optional_param('jumpto', NULL, PARAM_INT);
 		// going to insert into languagelesson_seenbranches                
 		if ($jumpValue == LL_RANDOMBRANCH) {
@@ -619,16 +1006,16 @@ class LanguageLessonContinuer {
 		} else {
 			$branchflag = 0;
 		}
-		if ($grades = get_records_select("languagelesson_grades", "lessonid = $this->lesson->id AND userid = $this->userid",
+		if ($grades = get_records_select("languagelesson_grades", "lessonid = $this->lessonid AND userid = $this->userid",
 					"grade DESC")) {
 			$retries = count($grades);
 		} else {
 			$retries = 0;
 		}
 		$branch = new stdClass;
-		$branch->lessonid = $this->lesson->id;
+		$branch->lessonid = $this->lessonid;
 		$branch->userid = $this->userid;
-		$branch->pageid = $page->id;
+		$branch->pageid = $this->pageid;
 		$branch->retry = $retries;
 		$branch->flag = $branchflag;
 		$branch->timeseen = time();
@@ -637,309 +1024,7 @@ class LanguageLessonContinuer {
 			error("Error: could not insert row into languagelesson_seenbranches table");
 		}
 
-		//  this is called when jumping to random from a branch table
-		if($jumpValue == LL_UNSEENBRANCHPAGE) {
-			if (! $this->isStudent) {
-				 $jumpValue = LL_NEXTPAGE;
-			} else {
-				 $jumpValue = languagelesson_unseen_question_jump($this->lesson->id, $this->userid, $page->id);  // this may return 0
-			}
-		}
-		// convert jumpto page into a proper page id
-		if ($jumpValue == 0) {
-			$newpageid = $page->id;
-		} elseif ($jumpValue == LL_NEXTPAGE) {
-			if (!$newpageid = $page->nextpageid) {
-				// no nextpage go to end of lesson
-				$newpageid = LL_EOL;
-			}
-		} elseif ($jumpValue == LL_PREVIOUSPAGE) {
-			$newpageid = $page->prevpageid;
-		} elseif ($jumpValue == LL_RANDOMPAGE) {
-			$newpageid = languagelesson_random_question_jump($this->lesson->id, $page->id);
-		} elseif ($jumpValue == LL_RANDOMBRANCH) {
-			$newpageid = languagelesson_unseen_branch_jump($this->lesson->id, $this->userid);
-		}
-	}
-
-
-
-	private function recordAttempt() {
-		// pull the retry value for this attempt, and handle deflagging former current attempt 
-		if ($oldAttempt = languagelesson_get_most_recent_attempt_on($page->id, $this->userid)) {
-			$nretakes = $oldAttempt->retry + 1;
-
-			// update the old attempt to no longer be marked as the current one
-			$uattempt = new stdClass;
-			$uattempt->id = $oldAttempt->id;
-			$uattempt->iscurrent = 0;
-
-			if (! update_record('languagelesson_attempts', $uattempt)) {
-				error('Failed to deflag former current attempt!');
-			}
-		} else { $nretakes = 0; }
-		
-		// record student's attempt
-		$attempt = new stdClass;
-		$attempt->lessonid = $this->lesson->id;
-		$attempt->pageid = $page->id;
-		$attempt->userid = $this->userid;
-		$attempt->answerid = $answerid;
-		$attempt->retry = $nretakes;
-		// flag this as the current attempt
-		$attempt->iscurrent = 1;
-		$attempt->correct = $correctanswer;
-		$attempt->score = $score;
-		if(isset($userresponse)) {
-			$attempt->useranswer = $userresponse;
-		}
-		$attempt->timeseen = time();
-
-	/// every try is recorded as a new one (by increasing retry value), so just insert this one
-		if (!$newattemptid = insert_record("languagelesson_attempts", $attempt)) {
-			error("Continue: attempt not inserted");
-		}
-		
-	/// if it's an essay question, handle the manual attempt record
-	/// (NOTE that audio/video manual attempt records are handled in file uploading functions)
-		if ($isessayquestion) {
-		/// save the manual attempt record
-			$manualattempt->timeseen = time();
-			if (!$manattemptid = insert_record('languagelesson_manattempts', $manualattempt)) {
-				error("Continue: manual attempt not inserted.");
-			}
-			
-		/// and log its ID in the attempt record
-			$attempt = get_record('languagelesson_attempts', 'id', $newattemptid);
-			$attempt->manattemptid = $manattemptid;
-			if (!$update = update_record('languagelesson_attempts', $attempt)) {
-				error("Continue: failed to note manual attempt id in attempt record.");
-			}
-		}
-	}
-
-
-
-
-
-
-
-	private function processJumpValue() {
-		// init newpageid to empty value
-		$newpageid = 0;
-
-		// ignore all of this if the page is a branchtable
-		if ($page->qtype != LL_BRANCHTABLE) {
-
-			error_log("jumpValue is $jumpValue");
-			error_log("LL_NEXTPAGE is " . LL_NEXTPAGE);
-
-			// TODO: convert this shit to a switch, stat
-			// if this is a test lesson and is a normal page, they should always be moved to the next page, irrespective of if they got it
-			// right or not
-			if ($this->lesson->type == LL_TYPE_TEST) { $newpageid = $page->nextpageid; }
-
-			if ($jumpValue==LL_NEXTPAGE) { error_log('page->nextpageid is ' . $page->nextpageid); }
-			error_log("LL_THISPAGE is " . LL_THISPAGE);
-
-			if ($jumpValue == LL_THISPAGE) {
-				$newpageid = $page->id;
-			} elseif ($jumpValue == LL_NEXTPAGE && !$newpageid = $page->nextpageid) {
-				// no nextpage go to end of lesson
-				$newpageid = LL_EOL;
-			} elseif ($jumpValue != LL_CLUSTERJUMP && $page->id != 0 && $jumpValue > 0) { //going to check to see if the page that the user is
-																						  //going to view next, is a cluster page. If so, dont
-																						  //display, go into the cluster.  The $newpageid > 0
-																						  //is used to filter out all the negative code jumps.
-				if (!$page = get_record("languagelesson_pages", "id", $jumpValue)) {
-					error("Error: could not find page");
-				}
-				if ($page->qtype == LL_CLUSTER) {
-					$newpageid = languagelesson_cluster_jump($this->lesson->id, $this->userid, $page->id);
-				}
-			} elseif ($jumpValue == LL_UNSEENBRANCHPAGE) {
-				if (! $this->isStudent) {
-					if ($page->nextpageid == 0) {
-						$newpageid = LL_EOL;
-					} else {
-						$newpageid = $page->nextpageid;
-					}
-				} else {
-					$newpageid = languagelesson_unseen_question_jump($this->lesson->id, $this->userid, $page->id);
-				}            
-			} elseif ($jumpValue == LL_PREVIOUSPAGE) {
-				$newpageid = $page->prevpageid;
-			} elseif ($jumpValue == LL_RANDOMPAGE) {
-				$newpageid = languagelesson_random_question_jump($this->lesson->id, $page->id);
-			} elseif ($jumpValue == LL_CLUSTERJUMP) {
-				if (! $this->isStudent) {
-					if ($page->nextpageid == 0) {  // if teacher, go to next page
-						$newpageid = LL_EOL;
-					} else {
-						$newpageid = $page->nextpageid;
-					}            
-				} else {
-					$newpageid = languagelesson_cluster_jump($this->lesson->id, $this->userid, $page->id);
-				}
-			// otherwise, it's an actual specific pageid, so just pass it in
-			} else {
-				$newpageid = $jumpValue;
-			}
-
-		}
-
-		return $newpageid;
-	}
-
-
-
-
-
-	public function continue() {
-
-		// update the student's recorded time for this LL
-		$this->updateTimer();
-
-		// check if the student has maxed out their attempts on this question
-		if ($this->lesson->maxattempts > 0) { // if maxattempts is 0, attempts are unlimited
-			$nattempts = count_records("languagelesson_attempts", "pageid", $page->id, "userid", $this->userid);
-			if ($nattempts >= $this->lesson->maxattempts) {
-				$this->skipRecordChanging = true;
-			}
-		}
-
-		// init this here, because not every situation sets it, but it is checked below
-		$response = '';
-	
-		// process the submitted answer(s)
-		switch ($page->qtype) {
-			case LL_ESSAY:
-			case LL_SHORTANSWER:
-			case LL_CLOZE:
-			case LL_TRUEFALSE:
-			case LL_MULTICHOICE:
-			case LL_MATCHING:
-			//case LL_NUMERICAL:
-				// init stuff
-
-				switch ($page->qtype) {
-					case LL_ESSAY: $ext = 'Essay'; break;
-					case LL_SHORTANSWER: $ext = 'ShortAnswer'; break;
-					case LL_CLOZE: $ext = 'Cloze'; break;
-					case LL_TRUEFALSE: $ext = 'TrueFalse'; break;
-					case LL_MULTICHOICE: $ext = 'Multichoice'; break;
-					case LL_MATCHING: $ext = 'Matching'; break;
-					//case LL_NUMERICAL: $ext = 'Numerical';
-					default: break;
-				}
-
-				$funcname = "handle$ext";
-				list($jumpValue, $answerData) = $this->$funcname();
-
-				break;
-
-			case LL_BRANCHTABLE:
-				$this->handleBranchTable();
-				// no need to record anything in lesson_attempts
-				$this->skipRecordChanging = true;
-				break;
-			case LL_AUDIO:
-			case LL_VIDEO:
-				// all attempt record handling is done in upload function, so don't need to do anything here
-				$jumpValue = get_field('languagelesson_answers', 'jumpto', 'pageid', $page->id);
-				$correctanswer = true;
-				$this->skipRecordChanging = true;
-				break;
-		}
-
-		// if they didn't submit an answer at all, kick them back to the same page
-		if ($noanswer) {
-			$jumpValue = LL_THISPAGE;
-			$feedback  = get_string('noanswer', 'languagelesson');
-		} else {
-			// if this isn't a student, there's no reason to touch the tables
-			if ($this->isStudent)) {
-				// If we don't need to change attempts records, don't do so
-				if (!$this->skipRecordChanging) {
-					$this->recordAttempt();
-				}
-				// and update the languagelesson's grade
-				// NOTE that this happens no matter the question type
-				if ($this->lesson->type != LL_TYPE_PRACTICE) {
-					// get the lesson's graded information
-					$gradeinfo = languagelesson_grade($this->lesson);
-					// save the grade
-					languagelesson_save_grade($this->lesson->id, $this->userid, $gradeinfo->grade);
-					// finally, update the records in the gradebook
-					languagelesson_update_grades($this->lesson, $this->userid);
-				}
-			}
-		}
-
-		// Determine if we should display feedback
-		if (($response || $this->lesson->defaultfeedback)
-				&& $page->qtype != LL_BRANCHTABLE) {
-			$this->showFeedback = true;
-			// if so, we should also feed in the next page (irrespective of the correctness of the attempt) for the "continue" button
-			$jumpValue = LL_NEXTPAGE;
-		}
-
-		$newpageid = $this->processJumpValue();
-
-		// since lesson questions can be answered in arbitrary order, check if lesson is complete after each
-		// submission--if so, and if the lesson hasn't been completed before (marked by the 'completed' field
-		// in languagelesson_grades), jump to the EOL page; if it has, and we are marked to go to the EOL page,
-		// redirect to view.php to handle the "Old Grade" page instead
-		$nopageid = false;
-		if (languagelesson_is_lesson_complete($this->lesson->id, $this->userid)) {
-			if (!get_field('languagelesson_grades', 'completed', 'lessonid', $this->lesson->id, 'userid', $this->userid)) {
-				$newpageid = LL_EOL;
-			} else if ($newpageid == LL_EOL) {
-				/// mark that we have completed it before, so let view just direct us to the "Old Grade"
-				/// page by not giving it a pageid
-				$nopageid = true;
-			}
-		}
-	
-		// if it's NOT complete, BUT the next page is found to be the EOL, then user jumped ahead in the lesson and just answered the last
-		// question, so boot them back to the first one they haven't answered
-		elseif ($newpageid == LL_EOL) {
-			$newpageid = languagelesson_find_first_unanswered_pageid($this->lesson->id, $this->userid);
-		}
-
-
-		$this->redirect();
-	}
-
-	private function redirect() {
-		global $CFG;
-
-		// if we are to show the viewer feedback on their submission, set up the required variables to display feedback output
-		if ($this->showFeedback) {
-			if ($this->isStudent) {
-				$aid = $newattemptid;
-			} else {
-				$aid = $answerid;
-				if (!$aid) {
-					$atext = $userresponse;
-				}
-			}
-		
-		// finally, redirect to display feedback or not
-			redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id&amp;pageid=$thispageid"
-					 ."&amp;showfeedback=1&amp;aid=$aid" . ((isset($atext)?"&amp;atext=$atext":''))
-					 .(($nopageid) ? '' : "&amp;nextpageid=$newpageid"));
-		} else if ($page->qtype == LL_AUDIO || $page->qtype == LL_VIDEO) {
-			// if it's an audio or video, force showing same page again to confirm successful submission
-			redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id&amp;pageid=$thispageid"
-					 .(($nopageid) ? '' : "&amp;nextpageid=$newpageid&amp;submitted=1"));
-		} else {
-			// Don't display feedback
-			redirect("$CFG->wwwroot/mod/languagelesson/view.php?id=$cm->id"
-					 . (($nopageid) ? '' : "&amp;pageid=$newpageid")
-					 . (($newpageid == $page->id) ? "&amp;submitted=1" : ''));
-		}
-
+		return $jumpValue;
 	}
     
 
