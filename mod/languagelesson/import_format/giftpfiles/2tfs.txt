@@ -1,3 +1,0 @@
-::tf1::t{TRUE}
-
-::tf2::t{TRUE}
