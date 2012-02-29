@@ -1,0 +1,3 @@
+[submodule "mod/languagelesson"]
+	path = mod/languagelesson
+	url = git@bitbucket.org:denbro42/languagelesson.git
