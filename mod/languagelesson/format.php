@@ -23,20 +23,26 @@ class qformat_default {
                               //added in
                               ESSAY		  => LL_ESSAY
                               );
-  /// variable to check if files are going to be autouploaded by this baby
+	// check if files are going to be autouploaded by this baby
     var $autouploading = false;
+	// include a lessonid field
+	var $lessonid = 0;
 
-/// Importing functions
 
+	// Importing functions
+
+	// Does any pre-processing that may be desired
     function importpreprocess() {
-    /// Does any pre-processing that may be desired
-
         return true;
     }
 
-    function importprocess($filename, $lesson, $pageid) {
+
+
+    function importprocess($filename, $lesson, $prevpageid) {
     	global $CFG;
-    /// Processes a given file.  There's probably little need to change this
+
+		$this->lessonid = $lesson->id;
+
         $timenow = time();
 
         if (! $lines = $this->readdata($filename)) {
@@ -54,32 +60,28 @@ class qformat_default {
         $count = 0;
 		
 		
-	  /// initialize the variable for tracking pageID of the branch table being
-	  /// populated; default value is just a nextpage pointer
-		$currentbranchtable = LL_NEXTPAGE;
-	  /// initialize the stack for holding branch tables while we wait for their
-	  /// branches to get pageID values (so we can feed the branches into the
-	  /// answers table); unlike the other branch table stack, this can have as
-	  /// many items as necessary
-		$branchtablestack = array();
-	  /// initialize the array for holding filename paths to upload--this is
-	  /// populated as question pages are added, then fed into a hidden form at
-	  /// the end of the import process which calls the auto_upload.php script
+		// initialize the BranchTracker instance for tracking what branch table we're
+		// populating and maintaining data about it
+		$branchTracker = new BranchTracker();
+		// initialize the array for holding filename paths to upload--this is
+		// populated as question pages are added, then fed into a hidden form at
+		// the end of the import process which calls the auto_upload.php script
 		$autouploadfnames = array();
-	  /// initialize the path to the upload destination directory; all auto-uploaded
-	  /// files are stored within a folder in the course's data root called
-	  /// LanguageLesson_Prompt_Files; the files for a particular lesson are then stored
-	  /// within a unique subfolder named as the name of the lesson (with spaces
-	  /// converted to underscores) followed by a timestamp in a format like
-	  /// 2010-12-15_11.17.38
-		/*$upload_destination = addslashes("$lesson->course/LanguageLesson_Prompt_Files/"
-			.preg_replace('/ /', '_', $lesson->name) . '_' . date('Y-m-d_H.i.s'));*/
+		// initialize the path to the upload destination directory; all auto-uploaded
+		// files are stored within a folder in the course's data root called
+		// LanguageLesson_Prompt_Files; the files for a particular lesson are then stored
+		// within a unique subfolder named as the name of the lesson (with spaces
+		// converted to underscores) followed by a timestamp in a format like
+		// 2010-12-15_11.17.38
 		$upload_destination = addslashes("$lesson->course/LanguageLesson_Prompt_Files/"
 			. clean_filename($lesson->name) . '_' . date('Y-m-d_H.i.s'));
-	  /// initialize the base dir for setting href values to in autoupload text
-	  /// replacing; this is just setting up the link to use Moodle's file.php
-	  /// protocol
+		// initialize the base dir for setting href values to in autoupload text
+		// replacing; this is just setting up the link to use Moodle's file.php
+		// protocol
 		$autoupload_link_dir = addslashes("$CFG->wwwroot/file.php/$upload_destination");
+		// init the flag for if the next page to insert will be the first page of a branch
+		// or not
+		$expectsFirstpage = false;
 		
         foreach ($questions as $question) {   // Process and store each question
             switch ($question->qtype) {
@@ -88,14 +90,13 @@ class qformat_default {
                 //case LL_NUMERICAL :
                 case LL_TRUEFALSE :
                 case LL_MULTICHOICE :
-                case LL_MATCHING :
-              /// added - questions
+                //case LL_MATCHING :
 				case LL_CLOZE :
               	case LL_ESSAY :
               	case LL_DESCRIPTION :
               	case LL_AUDIO :
               	case LL_VIDEO :
-              /// added - structural
+				// structural
               	case LL_BRANCHTABLE :
               	case LL_ENDOFBRANCH :
               	case LL_CLUSTER :
@@ -110,149 +111,82 @@ class qformat_default {
                     }
 
                     echo "<hr><p><b>$count</b>. ".stripslashes($question->questiontext)."</p>";
+
+					// set the known, unconditional values for the new page
                     $newpage = new stdClass;
                     $newpage->lessonid = $lesson->id;
-                    
-                    //$newpage->qtype = $this->qtypeconvert[$question->qtype];
                   	$newpage->qtype = $question->qtype;
-                    
-                  /// handle special data
-                    switch ($question->qtype) {
-                        case LL_SHORTANSWER :
-                            if (isset($question->usecase)) {
-                                $newpage->qoption = $question->usecase;
-                            }
-                            break;
-                        case LL_MULTICHOICE :
-                            if (isset($question->single)) {
-                                $newpage->qoption = !$question->single;
-                            }
-                            break;
-                        case LL_DESCRIPTION :
-                       	  /// use the lesson's built-in hack for description questions by setting
-                  		  /// the page as a multichoice that has no answers
-                        	$newpage->qtype = LL_MULTICHOICE;
-                        	break;
-                      /// set structural pages to invisible
-                        case LL_BRANCHTABLE :
-                        case LL_ENDOFBRANCH :
-                        case LL_CLUSTER :
-                        case LL_ENDOFCLUSTER :
-                        	$newpage->layout = 1;
-                        	
-                        	if ($question->qtype == LL_ENDOFBRANCH) {
-							  /// if it's an ENDOFBRANCH, store the pageID of the branch table
-							  /// that owns said branch
-								$question->branchparent = $currentbranchtable;
-							}	
-                        	
-                        	break;
-                    }
                     $newpage->timecreated = $timenow;
-                    if ($question->name != $question->questiontext) {
-                        $newpage->title = $question->name;
-                        $newpage->contents = $question->questiontext;
-                    } else {
-                      /// sub-switch for title/contents labeling, to match up with
-                      /// Moodle default DB behavior for structural pages
-                    	switch($question->qtype) {
-							case LL_ENDOFBRANCH :
-								$newpage->title = 'End of branch';
-								$newpage->contents = 'End of branch';
-							  /// if it's an ENDOFBRANCH, store the pageID of the branch table
-							  /// that owns said branch
-								$question->branchparent = $currentbranchtable;
-								break;
-							case LL_CLUSTER :
-								$newpage->title = 'Cluster';
-								$newpage->contents = 'Cluster';
-								break;
-							case LL_ENDOFCLUSTER :
-								$newpage->title = 'End of cluster';
-								$newpage->contents = 'End of cluster';
-								break;
-							default:
-                        		$newpage->title = "Page $count";
-                        		$newpage->contents = $question->questiontext;
-								break;
-                        }
-                    }
-                    //$newpage->contents = $question->questiontext;
-
-					// mark the ordering value
 					$newpage->ordering = $count;
 
-                    // set up page links
-                    if ($pageid) {
-                        // the new page follows on from this page
-                        if (!$page = get_record("languagelesson_pages", "id", $pageid)) {
-                            error ("Format: Page $pageid not found");
-                        }
-                        $newpage->prevpageid = $pageid;
-                        $newpage->nextpageid = $page->nextpageid;
-                        // insert the page and reset $pageid
-                        if (!$newpageid = insert_record("languagelesson_pages", $newpage)) {
-                            error("Format: Could not insert new page!");
-                        }
-                        // update the linked list
-                        if (!set_field("languagelesson_pages", "nextpageid", $newpageid, "id", $pageid)) {
-                            error("Format: unable to update link");
-                        }
+					// set the qoption field, dependent on question type
+					$newpage->qoption = $this->handleQOption($question);
+					// set the page's title and contents, also dependent on question type and submitted data
+                    list($newpage->title, $newpage->contents) = $this->handleTitleContents($question);
+					// if we're currently in a branch, set this page's branchid
+					if ($branchTracker->curBranchID) {
+						$newpage->branchid = $branchTracker->curBranchID;
+					}
 
-                    } else {
-                        // new page is the first page
-                        // get the existing (first) page (if any)
-                        if (!$page = get_record_select("languagelesson_pages", "lessonid = $lesson->id AND prevpageid = 0")) {
-                            // there are no existing pages
-                            $newpage->prevpageid = 0; // this is a first page
-                            $newpage->nextpageid = 0; // this is the only page
-                            $newpageid = insert_record("languagelesson_pages", $newpage);
-                            if (!$newpageid) {
-                                error("Insert page: new first page not inserted");
-                            }
-                        } else {
-                            // there are existing pages put this at the start
-                            $newpage->prevpageid = 0; // this is a first page
-                            $newpage->nextpageid = $page->id;
-                            $newpageid = insert_record("languagelesson_pages", $newpage);
-                            if (!$newpageid) {
-                                error("Insert page: first page not inserted");
-                            }
-                            // update the linked list
-                            if (!set_field("languagelesson_pages", "prevpageid", $newpageid, "id", $page->id)) {
-                                error("Insert page: unable to update link");
-                            }
-                        }
-                    }
-                    // reset $pageid and put the page ID in $question, used in save_question_option()
-                    $pageid = $newpageid;
+					// TEMP HACK :: if it's a DESCRIPTION, mark it as a MULTICHOICE until description works
+					if ($question->qtype == LL_DESCRIPTION) { $newpage->qtype = LL_MULTICHOICE; }
+
+					// save the page record
+					$newpageid = $this->savePage($newpage, $prevpageid);
+
+					// if we flagged to expect a first page, that means the page just inserted is the first page of the
+					// current branch, so update the branch's firstpage value
+					if ($expectsFirstpage) {
+						set_field('languagelesson_branches', 'firstpage', $newpageid, 'id', $branchTracker->curBranchID);
+						$expectsFirstpage = false;
+					}
+
+					// if we just hit the end of the current branch, move the branchTracker to the next branch
+					if ($question->qtype == LL_ENDOFBRANCH) {
+						$branchTracker->nextBranch();
+					}
+
+					// if we just inserted a BRANCHTABLE or a non-final ENDOFBRANCH, flag that we need to set
+					// the next branch's firstpage value to the next page created
+					if ($question->qtype == LL_BRANCHTABLE
+							|| ($question->qtype == LL_ENDOFBRANCH && ! $branchTracker->isComplete())) {
+						$expectsFirstpage = true;
+					}
+
+					// if we just inserted the final ENDOFBRANCH for the branch table we've been working on,
+					// go back and correct nextpageid pointers and pop to the next branch table
+					if ($question->qtype == LL_ENDOFBRANCH && $branchTracker->isComplete()) {
+						$this->correctEOBPointers($branchTracker->current);
+						$branchTracker->pop();
+					}
+
+                    // update $prevpageid to point to this pageand put the new page ID in $question
+					// for save_question_option()
+                    $prevpageid = $newpageid;
                     $question->id = $newpageid;
                     
                     $this->questionids[] = $question->id;
                     
-                  /// if we've run into a branch table, update the currentbranchtable pageID
-                  /// pointer to reflect the most recent branch table ID so we can set proper
-                  /// jumpto values for ENDOFBRANCH pages answer records
+					// if the page just inserted was a branch table, update the currentbranchtable
+					// pageID pointer to reflect the most recent branch table ID so we can set proper
+					// jumpto values for ENDOFBRANCH pages answer records
                     if ($question->qtype == LL_BRANCHTABLE) {
-                    	$currentbranchtable = $newpageid;
-                    	$branchtablestack[] = $question;
+						$newbranches = $this->createBranchRecords($question, $timenow);
+
+						$btData = new stdClass;
+						$btData->id = $newpageid;
+						$btData->curBranch = 0;
+						$btData->branches = $newbranches;
+
+						$branchTracker->push($btData);
                     }
 
                     // Now to save all the answers and type-specific options
 
                     $question->lessonid = $lesson->id; // needed for foreign key
-                    //$question->qtype = $this->qtypeconvert[$question->qtype];
                     
-                  /// if the current question is not a branch table, it has no latent data
-                  /// to be populated, so save its answer data
-                    if ($question->qtype != LL_BRANCHTABLE) {
-                    	$result = languagelesson_save_question_options($question);
-                  /// if it is a branch table, hang on till the end, when all pages have
-                  /// been created, then we can go through and set all the jumpto values
-                  /// appropriately for answer records
-                    } else {
-                    	break;
-                    }
+					// save question answer data
+					$result = languagelesson_save_question_options($question);
 
                     if (!empty($result->error)) {
                         notify($result->error);
@@ -272,55 +206,169 @@ class qformat_default {
         } // end foreach ($questions as $question)
         
         
-      /// now that we've populated all the pages, we can go through each of the branch
-      /// tables created and save the correct jumpto values for each branch
-        foreach ($branchtablestack as $branchtable) {
-        	
-          /// pull the relative list of branches for modifying into an absolute list
-          /// of branch pageIDs
-        	$branches =& $branchtable->branches;
-        	
-        	for ($i=0; $i<count($branches); $i++) {
-        		
-        		$index = $branches[$i][0]; /// branch items are [ <jumpto pageid> , <jump text> ]
-        		$branch = $questions[$index];
-        		$branchid = $branch->id;
-        		
-        		$branches[$i][0] = $branchid;
-        		
-        	}
-        	
-          /// now, finally, actually save the "answer" data for the branchtable
-        	$result = languagelesson_save_question_options($branchtable);
-        	
-          /// perform the above error-checking
-        	if (!empty($result->error)) {
-        		notify($result->error);
-        		return false;
-        	}
-        	if (!empty($result->notice)) {
-        		notify($result->notice);
-        		return true;
-        	}
-        	
-        }
-        
-        
-      /// and now take care of the last little bit of business, that is, actually
-      /// uploading the autoupload files, by building and submitting a form for them
+		// and now take care of the last little bit of business, that is, actually
+		// uploading the autoupload files, by building and submitting a form for them
       	if (count($autouploadfnames) > 0) {
       		$this->autouploading = true; //store this so we can give the below form one
       									 //more input in import.php
       		$this->build_submit_autoupload_form($autouploadfnames, $upload_destination);
       	}
         
-
-		// update the calculated max score for this lesson
-		languagelesson_recalculate_maxgrade($lesson->id);
-        
         
         return true;
     }
+
+
+	private function correctEOBPointers($branchData) {
+		$branchids_str = implode(',', $branchData->branches);
+		$eobs = get_records_select('languagelesson_pages', "qtype=".LL_ENDOFBRANCH." and branchid in ($branchids_str)");
+		// get rid of the final EOB, as its pointers are fine
+		array_pop($eobs);
+		// now loop through the EOB records and update them to point nextpageid at the parent branch table
+		foreach ($eobs as $eobid => $eob) {
+			$ueob = new stdClass;
+			$ueob->id = $eobid;
+			$ueob->nextpageid = $branchData->id;
+			if (! update_record('languagelesson_pages', $ueob)) {
+				error('Importing: could not update end of branch page nextpage pointer');
+			}
+		}
+	}
+
+
+
+
+	private function createBranchRecords($question, $timenow) {
+		$ordering = 0;
+		$branchids = array();
+		foreach ($question->branchnames as $title) {
+			$branch = new stdClass;
+			$branch->lessonid = $this->lessonid;
+			$branch->parentid = $question->id;
+			$branch->ordering = ++$ordering;
+			$branch->title = $title;
+			$branch->timecreated = $timenow; 
+
+			if (! $newbranchid = insert_record('languagelesson_branches', $branch)) {
+				error('Importing: could not insert new branch record');
+			}
+
+			$branchids[] = $newbranchid;
+		}
+		// return the IDs of the created branches
+		return $branchids;
+	}
+
+
+
+
+	private function handleQOption($question) {
+		$qoption = 0;
+		switch ($question->qtype) {
+			case LL_SHORTANSWER :
+				if (isset($question->usecase)) {
+					$qoption = $question->usecase;
+				}
+				break;
+			case LL_MULTICHOICE :
+				if (isset($question->single)) {
+					$qoption = !$question->single;
+				}
+				break;
+			// case LL_BRANCHTABLE :
+			//     stuff
+			default: break;
+		}
+		return $qoption;
+	}
+
+
+
+
+
+	private function handleTitleContents($question) {
+		// init title and contents both to empty
+		$title = '';
+		$contents = '';
+
+		if ($question->name != $question->questiontext) {
+			$title = $question->name;
+			$contents = $question->questiontext;
+		} else {
+			// sub-switch for title/contents labeling, to match up with
+			// Moodle default DB behavior for structural pages
+			switch($question->qtype) {
+				case LL_ENDOFBRANCH :
+					$title = 'ENDOFBRANCH';
+					break;
+				case LL_CLUSTER :
+					$title = 'Cluster';
+					$contents = 'Cluster';
+					break;
+				case LL_ENDOFCLUSTER :
+					$title = 'ENDOFCLUSTER';
+					break;
+				default:
+					$title = "Page $count";
+					$contents = $question->questiontext;
+					break;
+			}
+		}
+
+		return array($title, $contents);
+	}
+
+
+
+
+	private function savePage($newpage, $prevpageid) {
+
+		// set up page links
+		if ($prevpageid) {
+			// this is not the first page 
+			if (!$prevpage = get_record("languagelesson_pages", "id", $prevpageid)) {
+				error ("Format: Page $prevpageid not found");
+			}
+			$newpage->prevpageid = $prevpageid;
+			$newpage->nextpageid = $prevpage->nextpageid;
+			// insert the page and reset $prevpageid
+			if (!$newpageid = insert_record("languagelesson_pages", $newpage)) {
+				error("Format: Could not insert new page!");
+			}
+			// update the linked list
+			if (!set_field("languagelesson_pages", "nextpageid", $newpageid, "id", $prevpageid)) {
+				error("Format: unable to update link");
+			}
+
+		} else {
+			// new page is the first page
+			// get the existing (first) page (if any)
+			if (!$prevpage = get_record_select("languagelesson_pages", "lessonid = $this->lessonid AND prevpageid = 0")) {
+				// there are no existing pages
+				$newpage->prevpageid = 0; // this is a first page
+				$newpage->nextpageid = 0; // this is the only page
+				$newpageid = insert_record("languagelesson_pages", $newpage);
+				if (!$newpageid) {
+					error("Insert page: new first page not inserted");
+				}
+			} else {
+				// there are existing pages put this at the start
+				$newpage->prevpageid = 0; // this is a first page
+				$newpage->nextpageid = $prevpage->id;
+				$newpageid = insert_record("languagelesson_pages", $newpage);
+				if (!$newpageid) {
+					error("Insert page: first page not inserted");
+				}
+				// update the linked list
+				if (!set_field("languagelesson_pages", "prevpageid", $newpageid, "id", $prevpage->id)) {
+					error("Insert page: unable to update link");
+				}
+			}
+		}
+
+		return $newpageid;
+	}
+
 
 
     function readdata($filename) {
@@ -376,11 +424,10 @@ class qformat_default {
     /// Given an array of lines known to define a question in 
     /// this format, this function converts it into a question 
     /// object suitable for processing and insertion into Moodle.
-
-        echo "<p>This flash question format has not yet been completed!</p>";
-
+        echo "<p>This question format has not yet been defined!</p>";
         return NULL;
     }
+
 
     function defaultquestion() {
     // returns an "empty" question
@@ -412,6 +459,13 @@ class qformat_default {
     /// Does any post-processing that may be desired
     /// Argument is a simple array of question ids that 
     /// have just been added.
+
+		// update the languagelesson's ordering values
+		languagelesson_update_ordering($this->lessonid);
+
+		// update the calculated max score for this lesson
+		languagelesson_recalculate_maxgrade($this->lessonid);
+        
 
         return true;
     }
@@ -616,5 +670,47 @@ class qformat_default {
   ///// end autoupload managing functions /////
 
 }
+
+
+
+
+class BranchTracker {
+	
+	var $current = null;
+	var $stack = array();
+	var $curBranchID = 0;
+
+	function push($branch) {
+		// if we have been working with a BT object already, store it in the stack
+		if (! is_null($this->current)) {
+			$this->stack[] = $this->current;
+		}
+		$this->current = $branch;
+		$this->curBranchID = (count($this->current->branches) ? $this->current->branches[0] : 0);
+	}
+
+	function pop() {
+		$this->current = array_pop($this->stack);
+		if ($this->current) {
+			$this->curBranchID = $this->current->branches[$this->current->curBranch];
+		}
+	}
+
+	function nextBranch() {
+		++$this->current->curBranch;
+		if ($this->current && ! $this->isComplete()) {
+			$this->curBranchID = $this->current->branches[$this->current->curBranch];
+		} else { $this->curBranchID = null; }
+	}
+
+	function isComplete() {
+		if ($this->current) {
+			return ($this->current->curBranch == (count($this->current->branches)));
+		} else { return false; }
+	}
+
+}
+
+
 
 ?>

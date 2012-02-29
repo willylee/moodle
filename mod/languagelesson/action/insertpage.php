@@ -21,7 +21,7 @@
 	if ($form->qtype == LL_CLOZE) {
 		// note that since the text is coming from TinyMCE, it's pre-slashed, so we have to strip the slashes to get a proper
 		// DOMDocument reading of the HTML
-		languagelesson_validate_cloze_text(stripslashes($form->contents), $form->answer, $form->dropdown);
+		languagelesson_validate_cloze_text($form);
 	}
 
 	// if it's a branch table, make sure there were branches put in to save (otherwise, do NOT want to save the page record)

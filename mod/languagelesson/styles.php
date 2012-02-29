@@ -438,6 +438,25 @@
 	background-color: black;
 }
 
+.mod-languagelesson .bt_border_cell {
+	width: 4px;
+	background-color: gray;
+}
+
+.mod-languagelesson .bt_title_cell {
+	border-bottom-style: solid;
+	border-width: 4px;
+	border-color: gray;
+}
+
+.mod-languagelesson .offset_row {
+	height: 25px;
+}
+
+.mod-languagelesson .branch_title_cell {
+	white-space: nowrap;
+}
+
 .mod-languagelesson holistic_grade_box {
 	width: 50px;
 }

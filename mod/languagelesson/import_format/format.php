@@ -136,9 +136,10 @@ class qformat_giftplus extends qformat_default {
             if (empty($line)) {
                 if (!empty($currentquestion)) {
                     if ($question = $this->readquestion($currentquestion)) {
+
+						$questions[] = $question;
                         
                         if ($question->qtype != LL_BRANCHTABLE) {
-                        	$questions[] = $question;
                         	
                         	if ($question->qtype == LL_ENDOFBRANCH) {
                         		if (count($stack) < 1) {
@@ -146,69 +147,25 @@ class qformat_giftplus extends qformat_default {
                         		}
                         		
                         		$table =& $stack[0];
-                        		$table['seenbranches']++;
+                        		$table->seenbranches++;
                         		
-                        		if ($table['seenbranches'] == $table['expectedbranches']) {
-                        		  /// we have seen the expected number of branches,
-                        		  /// so put the completed object back into the
-                        		  /// questions array
-                        		  	$questions[$table['position']] = $table['tableobject'];
-                        		  /// and pop it from the stack
+								// if this was the last ENDOFBRANCH required for the current BT
+								// pop the BT from the stack
+                        		if ($table->seenbranches == $table->expectedbranches) {
                         		  	array_shift($stack);
-                        		} else {
-                        		  /// we haven't yet seen all the branches, so the
-                        		  /// next question should be the start of the next
-                        		  /// branch
-                        			$flag = true;
                         		}
-                        	
-                        	  ///save the relative position of the ENDOFBRANCH page's
-                        	  ///parent branch table, for later filling in proper jumpto vals
-                        		$question->branchparent = $table['position'];
-                        		
-                        	} elseif ($flag) {
-                        		if (count($stack) < 1) {
-                        			error("A question was marked as the start of a branch
-                        				   for a branch table that doesn't exist.");
-                        		}
-                        		
-                        		$table =& $stack[0]['tableobject'];
-                        		
-                        	  ///since pageids haven't been created yet (as none of this
-                        	  ///is yet in the database), we have to save relative positions
-                        	  ///of each of the branch-beginning pages (these are the only
-                        	  ///truly unique attributes available);
-                        	  ///we also need to save the input jump text for labeling the
-                        	  ///jump buttons
-                        	  	$branchdata = array();
-                        	  	$branchdata[0] = count($questions) - 1;
-                        	  	$branchdata[1] = trim($table->branchnames[count($table->branches)]);
-                        		$table->branches[] = $branchdata;
-                        		
-                        	  ///now that we've saved the start of the current branch,
-                        	  ///reset the flag
-                        		$flag = false;
-                        	}
+
+							}
                         	
                         } else {
-                          ///it's the start of a branch table
+							// it's the start of a branch table
                           
-                          ///shove an empty placeholder into the questions array,
-                          ///and save where the complete object should be placed
-                        	$questions[] = null;
-                        	$position = count($questions) - 1;
-                        	
-                          ///push the table onto the stack, stored with the position
-                          ///of its placeholder, the number of branches seen so far,
-                          ///and the expected number of branches
-                           	$stack[] = array('tableobject' => $question,
-											 'position' => $position,
-											 'seenbranches' => 0,
-											 'expectedbranches' => $question->numbranches);
-                           	
-                          ///we just created a branch table, so the very next question
-                          ///should be the first question in the first branch
-                           	$flag = true;
+							// push data about the table onto the stack for checking for correct
+							// number of ENDOFBRANCH tags
+							$tableData = new stdClass;
+							$tableData->seenbranches = 0;
+							$tableData->expectedbranches = $question->numbranches;
+							$stack[] = $tableData;
                         }
                     
                     }
@@ -225,15 +182,18 @@ class qformat_giftplus extends qformat_default {
             }
         }
         
-      ///the proper number of ENDBRANCH tags may not have been put in
+		// the proper number of ENDBRANCH tags may not have been put in
       	if (!empty($stack)) {
-      	  ///if the currently-open branch is not the last branch, bail
-      		if (($stack[0]['seenbranches'] + 1) != $stack[0]['expectedbranches']) {
-      			error('Too few branches designated.');
-      	  ///otherwise, forgive, forget, and push in the complete branch table
-      		} else {
-      			$questions[$stack[0]['position']] = $stack[0]['tableobject'];
-      		}
+			if (count($stack) == 1) {
+				$table = $stack[0];
+				// if the currently-open branch is not the last branch, bail; if it is,
+				// forgive and forget
+				if (($table->seenbranches + 1) != $table->expectedbranches) {
+					error('Too few branches designated.');
+				}
+			} else {
+				error('Too few branches designated.');
+			}
       	}
 
         return $questions;
@@ -288,97 +248,97 @@ class qformat_giftplus extends qformat_default {
             $text = substr($text, 2);
 
             $namefinish = strpos($text, "::");
-            if ($namefinish === false) {
-                $question->name = false;
-                // name will be assigned after processing question text below
-            } else {
-                $questionname = substr($text, 0, $namefinish);
-                $question->name = addslashes(trim($this->escapedchar_post($questionname)));
-                $text = trim(substr($text, $namefinish+2)); // Remove name from text
-            }
-        } else {
-            $question->name = false;
-        }
-
-
-        // FIND ANSWER section
-        // no answer means it's a description
-		// multiple answer areas means it's a cloze
-        $answerstart = strpos($text, "{");
-        $answerfinish = strpos($text, "}");
-
-        $description = false;
-		$cloze = false;
-        if (($answerstart === false) and ($answerfinish === false)) {
-            $description = true;
-            $answertext = '';
-            $answerlength = 0;
-        }
-        elseif (!(($answerstart !== false) and ($answerfinish !== false))) {
-            error( get_string( 'braceerror', 'quiz' ) . ' ' . $text );
-            return false;
-        }
-		// if multiple answers are found, it's a CLOZE
-		elseif (strpos(substr($text, $answerfinish), "{")) {
-			$cloze = true;
-		}
-        else {
-            $answerlength = $answerfinish - $answerstart;
-            $answertext = trim(substr($text, $answerstart + 1, $answerlength - 1));
-        }
-
-        // Format QUESTION TEXT without answer
-        if ($description) {
-            $questiontext = $text;
-        }
-		// If this was detected as a CLOZE, push in anchors for all the questions
-		elseif ($cloze) {
-			$answertexts = array();
-			$questiontext = $text;
-			$answerlength = $answerfinish - $answerstart;
-			$answertexts[] = trim(substr($questiontext, $answerstart + 1, $answerlength - 1));
-			$questiontext = substr_replace($questiontext, "<a name=\"1\"></a>", $answerstart, $answerlength+1);
-			$i = 2;
-			while ($newstart = strpos($questiontext, "{")) {
-				if(! $newfinish = strpos($questiontext, "}")) {
-					error(get_string('braceerror', 'quiz').' '.$text);
-				}
-				$newlength = $newfinish-$newstart;
-				// pull the text of the answer, excluding the braces
-				$atext = trim(substr($questiontext, $newstart + 1, $newlength - 1));
-				$answertexts[] = $atext;
-				// if it's not setting the custom feedback for the question, replace it with a placeholder in the questiontext 
-				if ($atext[0] != '#') {
-					$questiontext = substr_replace($questiontext, "<a name=\"$i\"></a>", $newstart, $newlength+1);
-					$i++;
-				// if it is, just get rid of it
+				if ($namefinish === false) {
+					$question->name = false;
+					// name will be assigned after processing question text below
 				} else {
-					$questiontext = substr_replace($questiontext, '', $newstart, $newlength+1);
+					$questionname = substr($text, 0, $namefinish);
+					$question->name = addslashes(trim($this->escapedchar_post($questionname)));
+					$text = trim(substr($text, $namefinish+2)); // Remove name from text
+				}
+			} else {
+				$question->name = false;
+			}
+
+
+			// FIND ANSWER section
+			// no answer means it's a description
+			// multiple answer areas means it's a cloze
+			$answerstart = strpos($text, "{");
+			$answerfinish = strpos($text, "}");
+
+			$description = false;
+			$cloze = false;
+			if (($answerstart === false) and ($answerfinish === false)) {
+				$description = true;
+				$answertext = '';
+				$answerlength = 0;
+			}
+			elseif (!(($answerstart !== false) and ($answerfinish !== false))) {
+				error( get_string( 'braceerror', 'quiz' ) . ' ' . $text );
+				return false;
+			}
+			// if multiple answers are found, it's a CLOZE
+			elseif (strpos(substr($text, $answerfinish), "{")) {
+				$cloze = true;
+			}
+			else {
+				$answerlength = $answerfinish - $answerstart;
+				$answertext = trim(substr($text, $answerstart + 1, $answerlength - 1));
+			}
+
+			// Format QUESTION TEXT without answer
+			if ($description) {
+				$questiontext = $text;
+			}
+			// If this was detected as a CLOZE, push in anchors for all the questions
+			elseif ($cloze) {
+				$answertexts = array();
+				$questiontext = $text;
+				$answerlength = $answerfinish - $answerstart;
+				$answertexts[] = trim(substr($questiontext, $answerstart + 1, $answerlength - 1));
+				$questiontext = substr_replace($questiontext, "<a name=\"1\"></a>", $answerstart, $answerlength+1);
+				$i = 2;
+				while ($newstart = strpos($questiontext, "{")) {
+					if(! $newfinish = strpos($questiontext, "}")) {
+						error(get_string('braceerror', 'quiz').' '.$text);
+					}
+					$newlength = $newfinish-$newstart;
+					// pull the text of the answer, excluding the braces
+					$atext = trim(substr($questiontext, $newstart + 1, $newlength - 1));
+					$answertexts[] = $atext;
+					// if it's not setting the custom feedback for the question, replace it with a placeholder in the questiontext 
+					if ($atext[0] != '#') {
+						$questiontext = substr_replace($questiontext, "<a name=\"$i\"></a>", $newstart, $newlength+1);
+						$i++;
+					// if it is, just get rid of it
+					} else {
+						$questiontext = substr_replace($questiontext, '', $newstart, $newlength+1);
+					}
 				}
 			}
-		}
-        elseif (substr($text, -1) == "}") {
-            // no blank line if answers follow question, outside of closing punctuation
-            $questiontext = substr_replace($text, "", $answerstart, $answerlength+1);
-		// If this is a missing word format SHORTANSWER, add a _____ in the question
-        } else {
-            // inserts blank line for missing word format
-            $questiontext = substr_replace($text, "_____", $answerstart, $answerlength+1);
-        }
+			elseif (substr($text, -1) == "}") {
+				// no blank line if answers follow question, outside of closing punctuation
+				$questiontext = substr_replace($text, "", $answerstart, $answerlength+1);
+			// If this is a missing word format SHORTANSWER, add a _____ in the question
+			} else {
+				// inserts blank line for missing word format
+				$questiontext = substr_replace($text, "_____", $answerstart, $answerlength+1);
+			}
 
-        // get questiontext format from questiontext
-        $oldquestiontext = $questiontext;
-        $questiontextformat = 0;
-        if (substr($questiontext,0,1)=='[') {
-            $questiontext = substr( $questiontext,1 );
-            $rh_brace = strpos( $questiontext, ']' );
-            $qtformat= substr( $questiontext, 0, $rh_brace );
-            $questiontext = substr( $questiontext, $rh_brace+1 );
-            if (!$questiontextformat = text_format_name( $qtformat )) {
-                $questiontext = $oldquestiontext;
-            }          
-        }
-        $question->questiontextformat = $questiontextformat;
+			// get questiontext format from questiontext
+			$oldquestiontext = $questiontext;
+			$questiontextformat = 0;
+			if (substr($questiontext,0,1)=='[') {
+				$questiontext = substr( $questiontext,1 );
+				$rh_brace = strpos( $questiontext, ']' );
+				$qtformat= substr( $questiontext, 0, $rh_brace );
+				$questiontext = substr( $questiontext, $rh_brace+1 );
+				if (!$questiontextformat = text_format_name( $qtformat )) {
+					$questiontext = $oldquestiontext;
+				}          
+			}
+			$question->questiontextformat = $questiontextformat;
         $question->questiontext = addslashes(trim($this->escapedchar_post($questiontext)));
 
         // set question name if not already set
@@ -765,7 +725,6 @@ class qformat_giftplus extends qformat_default {
                 return false;
                 break;    */      
             
-          ///// added structural types /////
           	case LL_BRANCHTABLE:
       			$question->numbranches = count(explode('|', $answertext));
       			$question->branches = array();

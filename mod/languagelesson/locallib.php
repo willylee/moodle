@@ -1026,45 +1026,6 @@ function languagelesson_save_question_options($question) {
         	}
         break;
         
-        
-      ///// added structural types /////
-        case LL_BRANCHTABLE:
-        	$branches = $question->branches;
-        	
-        	foreach ($branches as $branchdata) {
-        		$answer = new stdClass;
-        		$answer->lessonid = $question->lessonid;
-        		$answer->pageid = $question->id;
-        		$answer->timecreated = $timenow;
-        		
-        	  /// each $branchdata is an array consisting of
-        	  /// [ <jumpto pageid> , <jump label> ]
-        		$answer->answer = $branchdata[1];
-        		$answer->jumpto = $branchdata[0];
-        		$answer->score = 0;
-        		
-        		if (!insert_record("languagelesson_answers", $answer)) {
-        			$result->error = "Could not insert languagelesson branchtable branch!";
-        			return $result;
-        		}
-        	}
-        break;
-        
-        case LL_ENDOFBRANCH:
-        	$answer = new stdClass;
-        	$answer->lessonid = $question->lessonid;
-        	$answer->pageid = $question->id;
-        	$answer->timecreated = $timenow;
-        	
-        	$answer->jumpto = $question->branchparent;
-        	$answer->score = 0;
-        	
-        	if (!insert_record("languagelesson_answers", $answer)) {
-        		$result->error = "Could not insert languagelesson endofbranch answer!";
-        		return $result;
-        	}
-        break;
-        
         case LL_CLUSTER:
         	$answer = new stdClass;
         	$answer->lessonid = $question->lessonid;
@@ -1095,8 +1056,9 @@ function languagelesson_save_question_options($question) {
         	}
         break;
         
-      ///// end additions /////
-        
+		case LL_BRANCHTABLE:
+		case LL_ENDOFBRANCH:
+			break;
 
         default:
             $result->error = get_string('unsupportedqtype', 'languagelesson', $question->qtype);
@@ -3381,12 +3343,22 @@ function languagelesson_key_cloze_answers($answers) {
  *  - The number of each anchor matches with the number of exactly one answer
  *  - There are exactly as many question anchors and questions
  *
- * @param string $html The (plain, non-escaped) HTML of the question text to validate
- * @param array $answertexts The keyed array of answers as entered into the question page form
+ * @param object $form The data entered into the question page form
  * @return bool True if valid, errors out if invalid
  */
-function languagelesson_validate_cloze_text($html, $answertexts, $dropdowns) {
+function languagelesson_validate_cloze_text($form) {
 	$valid = true;
+
+	// the plain, non-escaped html of the question text to validate
+	$html = stripslashes($form->contents);
+
+	// the keyed array of answers as entered into the page form
+	if (isset($form->answer)) { $answertexts = $form->answer; }
+	else { error('No answers defined for this page! Use your browser\'s back button to define answers and retry.'); }
+
+	// any dropdown boxes that were checked
+	if (isset($form->dropdown)) { $dropdowns = $form->dropdown; }
+	else { $dropdowns = array(); }
 
 	$doc = new DOMDocument();
 	$doc->loadHTML($html);

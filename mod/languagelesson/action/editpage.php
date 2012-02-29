@@ -282,9 +282,13 @@
 					// print the answer box
 					echo "<b><label for=\"edit-answer[$n]\">".get_string('answer', 'languagelesson')." $nplus1:</label>
 							</b><br />";
-					// get rid of the ordering numeral at the start of the answer
-					$atext = explode('|', $answer->answer);
-					$atext = $atext[1];
+					// get rid of the ordering numeral at the start of the answer, if there is one
+					if (strstr($answer->answer, '|')) {
+						$atext = explode('|', $answer->answer);
+						$atext = $atext[1];
+					} else {
+						$atext = $answer->answer;
+					}
 					print_textarea(false, 1, 30, 0, 0, "answer[$n]", $atext);
 					echo '</td><td class="answerrow_cell">';
 					// print the drop-down checkbox
@@ -329,7 +333,9 @@
 			echo '<tr><td><table><tr><td class="answerrow_cell">';
 			echo "<b><label for=\"edit-answer[$n]\">".get_string("branchtitle", "languagelesson")."
 				$nplus1:</label></b><br />\n";
-			print_textarea(false, 1, 40, 0, 0, "answer[$n]", $branch->title);
+			print_textarea(false, 1, 40, 0, 0, "branchtitle[$n]", $branch->title);
+			// include the branch's ID
+			echo '<input type="hidden" name="branchid['.$n.']" value="'.$branch->id.'" />';
 			echo '</td><td class="answerrow_cell">';
 			echo "<b>".get_string("jump", "languagelesson")." $nplus1:</b><br />\n";
 			choose_from_menu($jump, "jumpto[$n]", $branch->firstpage, "");
@@ -422,7 +428,7 @@
 				case LL_BRANCHTABLE:
 					echo '<tr><td><table><tr><td class="answerrow_cell">';
 					echo "<b>".get_string("branchtitle", "languagelesson")." $iplus1:</b><br />\n";
-					print_textarea(false, 1, 40, 0, 0, "answer[$i]");
+					print_textarea(false, 1, 40, 0, 0, "branchtitle[$i]");
 					echo '</td><td class="answerrow_cell">';
 					echo "<b>".get_string("jump", "languagelesson")." $iplus1:</b><br />\n";
 					choose_from_menu($jump, "jumpto[$i]", 0, "");
@@ -473,7 +479,7 @@
 			echo "<b><label for=\"edit-wrongresponse\">".get_string('wrongresponse', 'languagelesson')."
 				:</label></b><br />\n";
 			print_textarea(false, 1, 50, 0, 0, "wrongresponse", $wrongresponse);
-			echo "<input type=\"hidden\" name=\"correctresponsescore\" value=\"1\" />";
+			echo "<input type=\"hidden\" name=\"wrongresponsescore\" value=\"0\" />";
 			echo '</td><td class="answerrow_cell">';
 			// print wrong jump editor
 			echo "<b>".get_string("wronganswerjump", "languagelesson").":</b><br />\n";

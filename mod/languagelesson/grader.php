@@ -236,8 +236,84 @@
 	}
 	sort($names);
 
+	// print to a string the numbered column headers for the main grid, and populate the branchTracker
+	list($colheaders, $btracker) = printColHeaders($pages);
+	// print out the structural headers (for branch tables)
+	list($btheaders, $numrows) = printBranchTableHeaders($btracker);
+	// and print to strings the rows of each of the three tables
+	list($namesContents, $gridContents, $rightContents) = populateRows($lesson, $pages, $names, $students_by_name, $grades);
+
+	?>
+	<table id="grader_content" style="table-layout: fixed;">
+		<tr>
+			<td id="stunames_column_cell" class="grader_content_column_cell">
+
+			<?php /// print out the frozen left-hand column of student names as its own table ?>
+				<div id="stunames_column_container">
+					<table id="stunames_column">
+						<?php for ($i=0; $i<$numrows; $i++) { echo '<tr class="offset_row"></tr>'; } ?>
+						<tr class="header_row">
+							<td id="student_column_header_cell" class="grader header_cell"><span class="rotate-text">
+								<?php echo get_string('graderstudentcolumnname','languagelesson'); ?></span></td>
+						</tr>
+						<?php echo $namesContents; ?>
+					</table>
+				</div>
+		
+			</td>
+			<td id="lesson_map_cell" class="grader_content_column_cell">
+
+				<div id="lesson_map_container">
+					<table id="lesson_map_table" class="grader">
+				<?php
+				// use style="overflow:auto" to get the scrollbar
+				echo $btheaders;
+				echo $colheaders;
+				echo $gridContents;
+				?>
+					</table>
+				</div>
+
+			</td>
+			<td id="right_column_cell" class="grader_content_column_cell">
+
+				<div id="dynamic_content_container">
+					<table id="dynamic_content">
+						<?php for ($i=0; $i<$numrows; $i++) { echo '<tr class="offset_row"></tr>'; } ?>
+						<tr class="header_row">
+							<td class=\"grader\" id=\"assign_grade_column_header_cell\">
+								<?php echo get_string("assigngradecolumnheader", 'languagelesson', get_field('languagelesson', 'grade',
+											'id', $lesson->id)); ?></td>
+							<td class=\"grader\" id=\"saved_grade_column_header_cell\">
+								<?php echo get_string("savedgradecolumnheader", 'languagelesson'); ?></td>
+						</tr>
+						<?php
+						echo $rightContents;
+						print_submission_buttons_row();
+						?>
+					</table>
+				</div>
+			
+			</td>
+		</tr>
+
+	</table>
+	<?php
+
+	print_simple_box_end();
+
+    echo "</form>";
+    
+/// print the lesson map legend
+    print_legend();
+
+/// end the page
+    print_footer($course);
+
+
 
 /// populate the rows of the three columns
+function populateRows($lesson, $pages, $names, $students_by_name, $grades) {
 	$namesContents = '';
 	$gridContents = '';
 	$rightContents = '';
@@ -276,99 +352,285 @@
 
 		$rightContents .= $thisRow;
 	}
-	?>
-	<table id="grader_content" style="table-layout: fixed;">
-		<tr>
-			<td id="stunames_column_cell" class="grader_content_column_cell">
 
-			<?php /// print out the frozen left-hand column of student names as its own table ?>
-				<div id="stunames_column_container">
-					<table id="stunames_column">
-						<tr class="header_row">
-							<td id="student_column_header_cell" class="grader header_cell"><span class="rotate-text">
-								<?php echo get_string('graderstudentcolumnname','languagelesson'); ?></span></td>
-						</tr>
-						<?php echo $namesContents; ?>
-					</table>
-				</div>
-		
-			</td>
-			<td id="lesson_map_cell" class="grader_content_column_cell">
+	return array($namesContents, $gridContents, $rightContents);
+}
 
-				<div id="lesson_map_container">
-					<table id="lesson_map_table" class="grader">
-				<?php
-				// use style="overflow:auto" to get the scrollbar
-				
-				// print out the column headers for the grid
-				echo "<tr class=\"header_row\">";
+function printColHeaders($pages) {
+	// print out the column headers for the grid
+	$colheaders = "<tr class=\"header_row\">";
 
-				$pages = get_records('languagelesson_pages', 'lessonid', $lesson->id, 'ordering'); 
-				
-				$i=1;
-				foreach ($pages as $pageid => $page) {
-					switch ($page->qtype) {
-						case LL_CLUSTER:
-						case LL_ENDOFCLUSTER:
-						case LL_BRANCHTABLE:
-							break;
-						case LL_ENDOFBRANCH:
-							echo "<td class=\"grader eob_cell\" />\n";
-							break;
-						default:
-							echo "<td class=\"grader header_cell question_title\" onmouseover=\"showtooltip(event,'" .
-								get_field('languagelesson_pages', 'title', 'id', $pageid) . "')\" onmouseout=\"hidetooltip();\">
-								<!--<span class=\"question_name\" id=\"question_name_$i\">" . get_field('languagelesson_pages',
-										'title', 'id', $pageid) . "</span>-->
-								<span class=\"rotate-text\">$i</span>
-							</td>\n";
-							$i++;
-							break;
-					}
+	$pageNumber=1;
+	$btracker = new BTracker();
+	foreach ($pages as $pageid => $page) {
+		// tell the branch tracker that we saw another page
+		$btracker->incrementActiveBTs();
+
+		switch ($page->qtype) {
+			case LL_CLUSTER:
+			case LL_ENDOFCLUSTER:
+				break;
+			case LL_BRANCHTABLE:
+				// push the new branch table into the branch tracker
+				$btracker->push($pageid, $page->title);
+
+				$colheaders .= "<td class=\"grader bt_border_cell\" />\n";
+				break;
+			case LL_ENDOFBRANCH:
+				// tell the branch tracker that we saw an end of branch page
+				$btracker->sawEOB();
+
+				$parentBT = get_field('languagelesson_branches', 'parentid', 'id', $page->branchid);
+				if ($parentBT == $page->nextpageid) {
+					$colheaders .= "<td class=\"grader eob_cell\" />\n";
+				} else {
+					$colheaders .= "<td class=\"grader bt_border_cell\" />\n";
 				}
-				echo "</tr>";
+				break;
+			default:
+				$colheaders .= "<td class=\"grader header_cell question_title\" onmouseover=\"showtooltip(event,'" .
+					get_field('languagelesson_pages', 'title', 'id', $pageid) . "')\" onmouseout=\"hidetooltip();\">
+					<!--<span class=\"question_name\" id=\"question_name_$pageNumber\">" . get_field('languagelesson_pages',
+							'title', 'id', $pageid) . "</span>-->
+					<span class=\"rotate-text\">$pageNumber</span>
+				</td>\n";
+				$pageNumber++;
+				break;
+		}
+	}
+	$colheaders .= "</tr>";
 
-				echo $gridContents;
+	return array($colheaders, $btracker);
+}
 
-				?>
-					</table>
-				</div>
 
-			</td>
-			<td id="right_column_cell" class="grader_content_column_cell">
+function printBranchTableHeaders($btracker) {
+	// now create the rows for showing branch table divisions
+	$btheaders = '';
+	// init $borderPositions to empty, as it will get set halfway through and needs to roll over
+	// between iterations
+	$borderPositions = array();
 
-				<div id="dynamic_content_container">
-					<table id="dynamic_content">
-						<tr class="header_row">
-							<td class=\"grader\" id=\"assign_grade_column_header_cell\">
-								<?php echo get_string("assigngradecolumnheader", 'languagelesson', get_field('languagelesson', 'grade',
-											'id', $lesson->id)); ?></td>
-							<td class=\"grader\" id=\"saved_grade_column_header_cell\">
-								<?php echo get_string("savedgradecolumnheader", 'languagelesson'); ?></td>
-						</tr>
-						<?php
-						echo $rightContents;
-						print_submission_buttons_row();
-						?>
-					</table>
-				</div>
-			
-			</td>
-		</tr>
+	foreach ($btracker->nestLevels as $level => $bts) {
+		// print the titles of any branch tables at this level
+		$btheaders = printBTTitles($borderPositions, $bts, $btheaders, $level);
+		// get the start/end positions of ALL branch tables at and above this nesting level
+		$borderPositions = $btracker->getBorderPositions($level);
+		// print the titles of the branches belonging to BTs at this level
+		$btheaders = printBranchTitles($borderPositions, $btheaders, $level);
+	}
 
-	</table>
-	<?php
+	// return the headers HTML and the number of rows used in printing the headers
+	return array($btheaders, ($level+1)*2);
+}
 
-	print_simple_box_end();
+function printBTTitles($borderPositions, $bts, $btheaders, $level) {
+	// now loop over the border positions and the branches in this level together to print the
+	// contents of the row in order
+	$bpIndex = 0; // border position
+	$btIndex = 0; // branch table
+	$nPagesSpanned = 0;
 
-    echo "</form>";
-    
-/// print the lesson map legend
-    print_legend();
+	$btheaders .= '<tr class="grader offset_row">';
 
-/// end the page
-    print_footer($course);
+	while ($bpIndex < count($borderPositions)
+			|| $btIndex < count($bts)) {
+		$bt = ($btIndex < count($bts)) ? $bts[$btIndex] : null;
 
+		// $btBorderPositions is not guaranteed to have content, so check that here
+		$nextBorder = (count($borderPositions)) ? $borderPositions[$bpIndex] : null;
+		$nextTable = (! is_null($bt)) ? $bt->startPosition : null;
+
+		// if there is a border to worry about and it either comes before the next table or there
+		// is no next table, print the next border
+		if ( !is_null($nextBorder)
+				&& ( is_null($nextTable) || ($nextBorder->position < $nextTable) ) ) {
+			// handle any blank space
+			$blankSpan = $nextBorder->position - $nPagesSpanned;
+			if ($blankSpan) { $btheaders .= "<td class=\"grader\" colspan=\"$blankSpan\" />"; }
+			// and print the border cell
+			$class = (($nextBorder->eob) ? 'eob_cell' : 'bt_border_cell');
+			$btheaders .= "<td class=\"grader $class\" />";
+			// update $nPagesSpanned
+			$nPagesSpanned = $nextBorder->position + 1;
+			// and increment the border index
+			++$bpIndex;
+		// otherwise print the next table
+		} else {
+			// handle any blank space
+			$blankSpan = $nextTable - $nPagesSpanned;
+			if ($blankSpan) { $btheaders .= "<td class=\"grader\" colspan=\"$blankSpan\"></td>"; }
+			// print the BT title
+			$btheaders .= "<td class=\"grader bt_title_cell\" colspan=\"$bt->countPages\">
+							$bt->title</td>";
+			// update $nPagesSpanned
+			$nPagesSpanned = $nextTable + $bt->countPages;
+			// and increment the table index
+			++$btIndex;
+		}
+	}
+
+	$btheaders .= '</tr>';
+
+	return $btheaders;
+}
+
+function printBranchTitles($borderPositions, $btheaders, $level) {
+	$nPagesSpanned = 0;
+	if (count($borderPositions)) {
+		$btheaders .= '<tr class="grader offset_row">';
+
+		$printing = false;
+		foreach ($borderPositions as $bp) {
+			$colspan = $bp->position - $nPagesSpanned;
+			if ($colspan) {
+				$btheaders .= "<td class=\"grader branch_title_cell\" colspan=\"$colspan\">"
+							  . (($printing) ? $branches[$curIndex++]->title : '') . '</td>';
+			}
+			if (! $bp->eob && $bp->nestlevel == $level) {
+				$printing = (! $printing);
+				if ($printing) {
+					$branches = array_values(get_records('languagelesson_branches', 'parentid', $bp->btid,
+								'ordering'));
+					$curIndex = 0;
+				}
+			}
+			// and print the border cell
+			$class = (($bp->eob) ? 'eob_cell' : 'bt_border_cell');
+			$btheaders .= "<td class=\"grader $class\" />";
+			// update $nPagesSpanned
+			$nPagesSpanned = $bp->position + 1;
+		}
+		$btheaders .= '</tr>';
+	}
+
+	return $btheaders;
+}
+
+class BTracker {
+
+	var $nestLevels = array();
+	var $n = -1;
+	var $curNestLevel = -1;
+	var $curBT = null;
+
+	/**
+	 * Create a tracking object for a new branch table, initializing it to nothing seen yet;
+	 * Push it in at the next nested level
+	 **/
+	function push($btid, $title) {
+		$bt = new stdClass;
+		$bt->id = $btid;
+		$bt->title = $title;
+		$bt->countPages = 1; // counting the BT page itself
+		$bt->startPosition = $this->n;
+		$bt->complete = false;
+		$bt->expectedBranches = count_records('languagelesson_branches', 'parentid', $btid);
+		$bt->seenEOBs = 0;
+		$bt->parent = $this->curBT;
+
+		++$this->curNestLevel;
+		if (! array_key_exists($this->curNestLevel, $this->nestLevels)) {
+			$this->nestLevels[$this->curNestLevel] = array();
+		}
+		$this->nestLevels[$this->curNestLevel][] = $bt;
+
+		$this->curBT = &$bt;
+	}
+
+	/**
+	 * For all branch tables that are not yet complete, increments the number of pages they span
+	 **/
+	function incrementActiveBTs() {
+		foreach ($this->nestLevels as $level => $bts) {
+			foreach ($bts as &$bt) {
+				if (! $bt->complete) { ++$bt->countPages; }
+			}
+		}
+		$this->n++;
+	}
+
+	/**
+	 * Notes in the current branch table that another of its branches has been completed;
+	 * If the current branch table has then been completed, pops up to its parent
+	 **/
+	function sawEOB() {
+		if (++$this->curBT->seenEOBs == $this->curBT->expectedBranches) {
+			$this->curBT->complete = true;
+			$this->curBT = &$this->curBT->parent;
+			$this->curNestLevel--;
+		}
+	}
+	
+	/**
+	 * Gets a sorted list of number of pages preceding each BT beginning and end in all nesting
+	 * levels above the input level
+	 * @param int $level The nesting level in question
+	 * @return array $positions The sorted positions
+	 **/
+	function getBorderPositions($level) {
+		$positions = array();
+
+		for ($i=0; $i<=$level; $i++) {
+			$bts = $this->nestLevels[$i];
+			foreach ($bts as $bt) {
+				$curCount = $bt->startPosition;
+				// add in the first (BT) border
+				$data = new stdClass;
+				$data->eob = false;
+				$data->btid = $bt->id;
+				$data->btstart = true;
+				$data->nestlevel = $i;
+				$data->position = $curCount;
+				$positions[] = $data;
+				// pull the branches to populate EOB borders
+				$branches = get_records('languagelesson_branches', 'parentid', $bt->id, 'ordering');
+				foreach ($branches as $bid => $b) {
+					// check the number of pages directly in the branch
+					$numBranchPages = count_records('languagelesson_pages', 'branchid', $bid) - 1;
+					// if this branch has any nested branch tables, include their page counts as well
+					if ($subs = get_records_select('languagelesson_pages', 'qtype='.LL_BRANCHTABLE." and branchid=$bid")) {
+						foreach ($subs as $subID => $sub) {
+							// take off 1 for the BT itself, as countPages includes that
+							$numBranchPages--;
+							// find the corresponding $bt record in $bts
+							foreach ($this->nestLevels[$i+1] as $btALT) {
+								if ($btALT->id == $subID) {
+									$numBranchPages += $btALT->countPages;
+									break;
+								}
+							}
+						}
+					}
+					$curCount = $curCount + $numBranchPages + 1;
+					// add in the EOB data
+					$data = new stdClass;
+					$data->eob = true;
+					$data->position = $curCount;
+					$positions[] = $data;
+				}
+				// pop off the most recent EOB added, because we're about to populate it as the end
+				// of a BT; NOTE that it should still be added in above in order to update $curCount
+				// to the correct value
+				array_pop($positions);
+				// add the last (BT) border
+				$data = new stdClass;
+				$data->eob = false;
+				$data->btid = $bt->id;
+				$data->btstart = false;
+				$data->nestlevel = $i;
+				$data->position = $curCount;
+				$positions[] = $data; 
+			}
+		}
+
+		usort($positions, "BTracker::cmp");
+
+		return $positions;
+	}
+	static function cmp($a, $b) { return ($a->position < $b->position) ? -1 : 1; }
+
+}
 
 
 function print_submission_buttons_row() {
@@ -505,13 +767,19 @@ function print_row($attempts, $pages)
 	foreach ($pages as $pageid => $page) {
 		// if it's a structural page, handle it appropriately
 		switch ($page->qtype) {
+			case LL_BRANCHTABLE:
+				$output .= "<td class=\"grader bt_border_cell\" />\n";
 			case LL_CLUSTER:
 			case LL_ENDOFCLUSTER:
-			case LL_BRANCHTABLE:
 				continue 2;
 				break;
 			case LL_ENDOFBRANCH:
-				$output .= "<td class=\"grader eob_cell\" />\n";
+				$parentBT = get_field('languagelesson_branches', 'parentid', 'id', $page->branchid);
+				if ($parentBT == $page->nextpageid) {
+					$output .= "<td class=\"grader eob_cell\" />\n";
+				} else {
+					$output .= "<td class=\"grader bt_border_cell\" />\n";
+				}
 				continue 2;
 				break;
 			default:
