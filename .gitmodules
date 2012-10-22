@@ -1,0 +1,3 @@
+[submodule "blocks/quickmail"]
+	path = blocks/quickmail
+	url = https://github.com/CLAMP-IT/quickmail
