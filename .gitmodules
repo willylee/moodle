@@ -7,3 +7,6 @@
 [submodule "blocks/filtered_course_list"]
 	path = blocks/filtered_course_list
 	url = https://github.com/CLAMP-IT/moodle-blocks_filtered_course_list
+[submodule "grade/report/laegrader"]
+	path = grade/report/laegrader
+	url = https://github.com/CLAMP-IT/moodle-report_laegrader
