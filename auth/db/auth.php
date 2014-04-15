@@ -141,7 +141,12 @@ class auth_plugin_db extends auth_plugin_base {
      */
     function db_init() {
         // Connect to the external database (forcing new connection).
-        $authdb = ADONewConnection($this->config->type);
+        if (!empty($this->config->type)) {
+            $authdb = ADONewConnection($this->config->type);
+        } else {
+            print_error('auth_dbcantconnect', 'auth_db');
+            return false;
+        }
         if (!empty($this->config->debugauthdb)) {
             $authdb->debug = true;
             ob_start(); //Start output buffer to allow later use of the page headers.
